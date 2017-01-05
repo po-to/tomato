@@ -1,3 +1,8 @@
+/*!
+ * Copyright po-to.org All Rights Reserved.
+ * https://github.com/po-to/
+ * Licensed under the MIT license
+ */
 declare let namespace: string;
 export declare const TaskCountEvent: {
     Added: string;
@@ -40,6 +45,10 @@ export declare class PError {
         line: string;
         detail: any;
     });
+    /**
+     * 获取命名空间.
+     * @return 命名空间
+     */
     getNamespace(): string;
 }
 export declare class PDispatcher {

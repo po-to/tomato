@@ -1,3 +1,13 @@
+/*!
+ * Copyright po-to.org All Rights Reserved.
+ * https://github.com/po-to/
+ * Licensed under the MIT license
+ */
+var __extends = (this && this.__extends) || function (d, b) {
+    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+    function __() { this.constructor = d; }
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+};
 define(["require", "exports"], function (require, exports) {
     "use strict";
     var namespace = 'po-to/tomato';
@@ -43,6 +53,10 @@ define(["require", "exports"], function (require, exports) {
             this.note = note;
             this.data = data;
         }
+        /**
+         * 获取命名空间.
+         * @return 命名空间
+         */
         PError.prototype.getNamespace = function () {
             return namespace;
         };
@@ -463,6 +477,25 @@ define(["require", "exports"], function (require, exports) {
         Dialog.prototype._afterBlur = function () {
         };
         Dialog.prototype._allowFocus = function (closeAction) {
+            /*
+            close{
+                需要将第2个focus{
+                    不需要将第1个blur
+                    不需要将父focus
+                }
+                不需要将第2个focus
+            }
+            focus{
+                新加入的{
+                    将第一个blur
+                    将父focus
+                }
+                已存在的{
+                    将第一个blur
+                    将父focus
+                }
+            }
+            */
             return true;
         };
         Dialog.prototype._allowBlur = function () {
@@ -512,6 +545,8 @@ define(["require", "exports"], function (require, exports) {
             return true;
         };
         Dialog.prototype.focus = function (checked) {
+            /* 三种调用场景：1.由close()上文调用；2.当前为closed状态; 3.当前为blured状态 */
+            //if (this.state == DialogState.Focused) { return false; }
             if (!checked && !this._checkFocus()) {
                 return false;
             }

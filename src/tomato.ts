@@ -1,3 +1,9 @@
+/*!
+ * Copyright po-to.org All Rights Reserved.
+ * https://github.com/po-to/
+ * Licensed under the MIT license
+ */
+
 declare var require: (deps:string[],succCallback:(data:any)=>void,failCallback:(error:any)=>void)=>void;
 declare var define : (id:string, mod:any)=>void;
 
@@ -29,6 +35,7 @@ export const DialogEvent = {
 
 export class PEvent {
     readonly target: PDispatcher;
+    
     constructor(public readonly name: string, public readonly data?: any, public bubbling: boolean = false) {
     }
     _setTarget(target: PDispatcher): this {
@@ -40,6 +47,7 @@ export class PError {
     constructor(public readonly name: string, public readonly note: string = "tomato.PError", public readonly data?: { file: string, line: string, detail: any }) {
 
     }
+    
     getNamespace(): string {
         return namespace;
     }
@@ -55,6 +63,7 @@ export class PDispatcher {
     constructor(public readonly parent?: PDispatcher | undefined) {
     }
     protected readonly _handlers: { [key: string]: Array<(e: PEvent) => void> } = {};
+    
     addListener(ename: string, handler: (e: PEvent) => void): this {
         let dictionary = this._handlers[ename];
         if (!dictionary) {
