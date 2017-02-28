@@ -59,11 +59,10 @@ define(["require", "exports"], function (require, exports) {
         __extends(PError, _super);
         function PError(name, note, data) {
             if (note === void 0) { note = "tomato.PError"; }
-            var _this = _super.call(this, name) || this;
-            _this.name = name;
-            _this.note = note;
-            _this.data = data;
-            return _this;
+            _super.call(this, name);
+            this.name = name;
+            this.note = note;
+            this.data = data;
         }
         PError.prototype.getNamespace = function () {
             return namespace;
@@ -136,20 +135,19 @@ define(["require", "exports"], function (require, exports) {
         return PDispatcher;
     }());
     exports.PDispatcher = PDispatcher;
-    var TaskCounterState;
     (function (TaskCounterState) {
         TaskCounterState[TaskCounterState["Free"] = 0] = "Free";
         TaskCounterState[TaskCounterState["Busy"] = 1] = "Busy";
-    })(TaskCounterState = exports.TaskCounterState || (exports.TaskCounterState = {}));
+    })(exports.TaskCounterState || (exports.TaskCounterState = {}));
+    var TaskCounterState = exports.TaskCounterState;
     ;
     var TaskCounter = (function (_super) {
         __extends(TaskCounter, _super);
         function TaskCounter(deferSecond) {
-            var _this = _super.call(this) || this;
-            _this.deferSecond = deferSecond;
-            _this.list = [];
-            _this.state = TaskCounterState.Free;
-            return _this;
+            _super.call(this);
+            this.deferSecond = deferSecond;
+            this.list = [];
+            this.state = TaskCounterState.Free;
         }
         TaskCounter.prototype.addItem = function (promise, note) {
             var _this = this;
@@ -199,10 +197,9 @@ define(["require", "exports"], function (require, exports) {
     var VPresenter = (function (_super) {
         __extends(VPresenter, _super);
         function VPresenter(view, parent, vpid) {
-            var _this = _super.call(this, parent) || this;
-            _this.view = view;
-            _this.vpid = vpid;
-            return _this;
+            _super.call(this, parent);
+            this.view = view;
+            this.vpid = vpid;
         }
         VPresenter.prototype.isWholeVPresenter = function () {
             return typeof (this['getHeader']) == 'function' && typeof (this['getFooter']) == 'function' && typeof (this['getAside']) == 'function';
@@ -409,14 +406,13 @@ define(["require", "exports"], function (require, exports) {
         return promise;
     }
     exports.getVPresenter = getVPresenter;
-    var DialogState;
     (function (DialogState) {
         DialogState[DialogState["Focused"] = 0] = "Focused";
         DialogState[DialogState["Blured"] = 1] = "Blured";
         DialogState[DialogState["Closed"] = 2] = "Closed";
-    })(DialogState = exports.DialogState || (exports.DialogState = {}));
+    })(exports.DialogState || (exports.DialogState = {}));
+    var DialogState = exports.DialogState;
     ;
-    var DialogPosition;
     (function (DialogPosition) {
         DialogPosition[DialogPosition["Left"] = 0] = "Left";
         DialogPosition[DialogPosition["Center"] = 1] = "Center";
@@ -424,22 +420,22 @@ define(["require", "exports"], function (require, exports) {
         DialogPosition[DialogPosition["Top"] = 3] = "Top";
         DialogPosition[DialogPosition["Middle"] = 4] = "Middle";
         DialogPosition[DialogPosition["Bottom"] = 5] = "Bottom";
-    })(DialogPosition = exports.DialogPosition || (exports.DialogPosition = {}));
-    var DialogSize;
+    })(exports.DialogPosition || (exports.DialogPosition = {}));
+    var DialogPosition = exports.DialogPosition;
     (function (DialogSize) {
         DialogSize[DialogSize["Content"] = 0] = "Content";
         DialogSize[DialogSize["Full"] = 1] = "Full";
-    })(DialogSize = exports.DialogSize || (exports.DialogSize = {}));
+    })(exports.DialogSize || (exports.DialogSize = {}));
+    var DialogSize = exports.DialogSize;
     var Dialog = (function (_super) {
         __extends(Dialog, _super);
         function Dialog(els, config) {
-            var _this = _super.call(this, els.view, undefined) || this;
-            _this.history = new History();
-            _this.state = DialogState.Closed;
-            _this.content = null;
-            _this._dialogList = [];
-            _this._zindex = -1;
-            _this.config = {
+            _super.call(this, els.view, undefined);
+            this.state = DialogState.Closed;
+            this.content = null;
+            this._dialogList = [];
+            this._zindex = -1;
+            this.config = {
                 className: '',
                 masked: false,
                 position: { x: DialogPosition.Center, y: DialogPosition.Middle },
@@ -452,20 +448,18 @@ define(["require", "exports"], function (require, exports) {
                 headerEffect: undefined,
                 footerEffect: undefined,
                 asideEffect: undefined,
-                bodyEffect: undefined,
-                rootUriCmd: undefined
+                bodyEffect: undefined
             };
-            _this.dialog = els.dialog;
-            _this.mask = els.mask;
-            _this.body = els.body;
-            _this.header = els.header;
-            _this.footer = els.footer;
-            _this.aside = els.aside;
-            _this.view.addClass("pt-" + DialogState[_this.state]);
+            this.dialog = els.dialog;
+            this.mask = els.mask;
+            this.body = els.body;
+            this.header = els.header;
+            this.footer = els.footer;
+            this.aside = els.aside;
+            this.view.addClass("pt-" + DialogState[this.state]);
             if (config) {
-                _this.setConfig(config);
+                this.setConfig(config);
             }
-            return _this;
         }
         Dialog.prototype.setConfig = function (config) {
             var oldConfig = this.config;
@@ -783,111 +777,22 @@ define(["require", "exports"], function (require, exports) {
     var Application = (function (_super) {
         __extends(Application, _super);
         function Application(els, config) {
-            var _this = _super.call(this, els, config) || this;
-            _this.initTime = Date.now();
-            _this._setZIndex(0);
-            _this._setState(DialogState.Focused);
-            _this.view.addClass("pt-topDialog");
+            var _this = this;
+            _super.call(this, els, config);
+            this._setZIndex(0);
+            this._setState(DialogState.Focused);
+            this.view.addClass("pt-topDialog");
             taskCounter.addListener(exports.TaskCountEvent.Added, function (e) {
                 _this.mask.addClass("pt-show");
             }).addListener(exports.TaskCountEvent.Completed, function (e) {
                 _this.mask.removeClass("pt-show");
-            }).addListener(exports.TaskCountEvent.Busy, function (e) {
+            })
+                .addListener(exports.TaskCountEvent.Busy, function (e) {
                 _this.mask.addClass("pt-busy");
             }).addListener(exports.TaskCountEvent.Free, function (e) {
                 _this.mask.removeClass("pt-busy");
             });
-            if (config && config.rootUriCmd) {
-                _this._initHistory(_this.initTime, config.rootUriCmd);
-            }
-            return _this;
         }
-        Application.prototype._initHistory = function (initTime, rootUriCmd) {
-            var supportState = window.history.pushState ? true : false;
-            var _trigger;
-            var history = this.history;
-            function pushState(code, title, url, isUri) {
-                window.history.pushState(code, title, isUri ? url : "#" + encodeURI(url));
-            }
-            function addState(code) {
-                window.history.replaceState(initTime + "." + code, document.title, window.location.href);
-            }
-            history._syncHistory = function (change, callback) {
-                var execute = function () {
-                    if (change.push) {
-                        pushState(initTime + '.' + change.push.code, change.push.title, change.push.url, change.push.isUri);
-                        document.title = change.push.title;
-                    }
-                    setTimeout(callback, 1);
-                };
-                if (change.move) {
-                    _trigger = function () {
-                        document.title = change.moveTitle || '';
-                        execute();
-                    };
-                    window.history.go(change.move);
-                }
-                else {
-                    execute();
-                }
-            };
-            function handlerHistory(str) {
-                var _a = str.split(".").map(function (val) {
-                    return parseInt(val);
-                }), flag = _a[0], uri = _a[1], act = _a[2];
-                if (flag == initTime) {
-                    var cmd = history.getCmdByCode(uri + '.' + act);
-                    if (cmd) {
-                        var _b = history.getCode(), curUri = _b[0], curAct = _b[1];
-                        var n_1 = curUri - uri + curAct - act;
-                        if (n_1 != 0) {
-                            var title_1 = document.title;
-                            document.title = cmd.title;
-                            _trigger = function () {
-                                document.title = title_1;
-                                setTimeout(function () { history.go(-n_1); }, 1); //异步触发
-                            };
-                            window.history.go(n_1);
-                        }
-                    }
-                    else {
-                        window.location.reload();
-                    }
-                }
-                else {
-                    window.location.reload();
-                }
-            }
-            function handlerChange(e) {
-                if (_trigger) {
-                    if (typeof _trigger == "function") {
-                        _trigger();
-                    }
-                    _trigger = false;
-                }
-                else {
-                    if (history.getLength()) {
-                        if (e.state) {
-                            handlerHistory(e.state);
-                        }
-                        else {
-                            history.added(new Cmd(window.location.href, document.title, false));
-                            addState(history.getCode().join("."));
-                        }
-                    }
-                }
-            }
-            if (supportState) {
-                bindEventListener(window, 'popstate', handlerChange);
-            }
-            else {
-                bindEventListener(window, 'hashchange', function (e) {
-                    console.log('hash', window.location.hash, e);
-                });
-            }
-            history.added(rootUriCmd);
-            addState("1.0");
-        };
         Application.prototype.close = function () {
             return false;
         };
@@ -899,14 +804,238 @@ define(["require", "exports"], function (require, exports) {
     exports.Application = Application;
     var application = {};
     exports.application = application;
+    var CmdQueue = (function (_super) {
+        __extends(CmdQueue, _super);
+        function CmdQueue(historyMax, isUri, parent) {
+            var _this = this;
+            _super.call(this, parent);
+            this.historyMax = historyMax;
+            this.isUri = isUri;
+            this.history = []; //[旧...新]
+            this.cache = []; //[旧...新]
+            this.cur = -1; //同history的index
+            this.goto = -1; //同history的index
+            this.addListener(exports.CmdEvent.ItemSuccess, function (pevent) {
+                var cmd = pevent.target;
+                cmd.setParent(undefined);
+                if (_this.curItem) {
+                    _this.curItem.callback();
+                    _this.next();
+                }
+            }).addListener(exports.CmdEvent.ItemFailure, function (pevent) {
+                var cmd = pevent.target;
+                cmd.setParent(undefined);
+                _this.cache.length = 0;
+                _this.goto = _this.cur;
+                _this.curItem = undefined;
+                _this.dispatch(new PEvent(exports.CmdEvent.Failure));
+                _this.dispatch(new PEvent(exports.CmdEvent.Complete));
+            });
+        }
+        CmdQueue.prototype.push = function (cmd) {
+            var cache = this.cache;
+            var list = Array.isArray(cmd) ? cmd : [cmd];
+            if (this.isUri) {
+                cache.length = 0;
+                cache[0] = list.pop();
+            }
+            else {
+                cache.push.apply(cache, list);
+            }
+            if (!this.curItem) {
+                this.next();
+            }
+        };
+        CmdQueue.prototype.empty = function () {
+            this.cancel();
+            this.curItem = undefined;
+            this.history.length = 0;
+            this.cache.length = 0;
+            this.cur = -1;
+            this.goto = -1;
+        };
+        CmdQueue.prototype.cancel = function () {
+            if (this.curItem) {
+                var cmd = this.curItem.cmd;
+                var method = "abort_" + this.curItem.method;
+                cmd[method]();
+            }
+        };
+        CmdQueue.prototype.to = function (n) {
+            var arr = [this.goto, 0];
+            if (n == 0) {
+                return arr;
+            }
+            n = this.goto + n;
+            var l = this.history.length - 1;
+            if (n < -1) {
+                arr[0] = -1;
+                arr[1] = n + 1;
+            }
+            else if (n > l) {
+                arr[0] = l;
+                arr[1] = n - l;
+            }
+            else {
+                arr[0] = n;
+                arr[1] = 0;
+            }
+            return arr;
+        };
+        CmdQueue.prototype.go = function (n) {
+            var l = this.history.length - 1;
+            if (n < -1) {
+                n = -1;
+            }
+            else if (n > l) {
+                n = l;
+            }
+            if (n == -1 && this.goto == -1) {
+                this.dispatch(new PEvent(exports.CmdEvent.Overflow));
+                return false;
+            }
+            this.goto = n;
+            if (!this.curItem) {
+                this.next();
+            }
+        };
+        CmdQueue.prototype.next = function () {
+            var _this = this;
+            var history = this.history;
+            var h = history.length;
+            var c = this.cur;
+            var g = this.goto;
+            var m = this.historyMax;
+            var cmd, del, index;
+            if (c != g) {
+                if (g < c) {
+                    if (this.isUri) {
+                        cmd = history[g + 1];
+                        index = g;
+                    }
+                    else {
+                        cmd = history[c];
+                        index = c - 1;
+                    }
+                    this.curItem = { cmd: cmd, method: "undo", callback: function () { _this.cur = index; } };
+                    cmd.setParent(this);
+                    cmd.undo();
+                }
+                else {
+                    if (this.isUri) {
+                        cmd = history[g];
+                        index = g;
+                    }
+                    else {
+                        cmd = history[c + 1];
+                        index = c + 1;
+                    }
+                    this.curItem = { cmd: cmd, method: "redo", callback: function () { _this.cur = index; } };
+                    cmd.setParent(this);
+                    cmd.redo();
+                }
+            }
+            else if (this.cache.length) {
+                cmd = this.cache[0];
+                this.curItem = { cmd: cmd, method: "execute", callback: function () {
+                        _this.cache.shift();
+                        if (c < (h - 1)) {
+                            del = history.slice(c + 1);
+                            history.length = h = c + 1;
+                        }
+                        history.push(cmd);
+                        if (m < (h + 1)) {
+                            del = [history.shift()];
+                            _this.cur = c - 1;
+                        }
+                        else {
+                            _this.goto = g + 1;
+                        }
+                        _this.cur = _this.goto;
+                    } };
+                cmd.setParent(this);
+                cmd.execute();
+            }
+            else {
+                this.curItem = undefined;
+                this.dispatch(new PEvent(exports.CmdEvent.Success));
+                this.dispatch(new PEvent(exports.CmdEvent.Complete));
+            }
+        };
+        return CmdQueue;
+    }(PDispatcher));
+    exports.CmdQueue = CmdQueue;
+    var ViewHistory = (function () {
+        function ViewHistory(uriMax, actMax) {
+            var _this = this;
+            this.uriCache = [];
+            this.actCache = [];
+            this.uriQueue = new CmdQueue(uriMax, true);
+            this.actQueue = new CmdQueue(actMax);
+            this.uriQueue.addListener(exports.CmdEvent.Complete, function () {
+                _this.actQueue.empty();
+                if (_this.actCache.length) {
+                    _this.actQueue.push(_this.actCache);
+                    _this.actCache.length = 0;
+                }
+            });
+            this.actQueue.addListener(exports.CmdEvent.Complete, function () {
+                if (_this.uriCache.length) {
+                    _this.uriQueue.push(_this.uriCache);
+                    _this.uriCache.length = 0;
+                }
+            });
+            this.uriQueue.addListener(exports.CmdEvent.Overflow, function () {
+                //exitCallback();
+            });
+        }
+        ViewHistory.prototype.uriPush = function (cmd) {
+            this.actQueue.cancel();
+            this.uriQueue.cancel();
+            this.actCache.length = 0;
+            if (this.actQueue.curItem) {
+                // 如果当前有act在运行，先将新uri存起来，act执行完后会执行uri cache
+                this.uriCache.length = 0;
+                this.uriCache[0] = cmd;
+            }
+            else {
+                this.uriQueue.push(cmd);
+            }
+        };
+        ViewHistory.prototype.actPush = function (cmd) {
+            if (this.uriQueue.curItem || this.uriCache.length) {
+                //如果当前uri在运行或等待运行，则先将act存起来，uri执行完后会执行act cache
+                this.actCache.push(cmd);
+            }
+            else {
+                this.actQueue.push(cmd);
+            }
+        };
+        ViewHistory.prototype.go = function (n) {
+            var arr = this.actQueue.to(n);
+            if (arr[1]) {
+                arr = this.uriQueue.to(arr[1]);
+                this.uriQueue.go(arr[0]);
+            }
+            else {
+                this.actQueue.go(arr[0]);
+            }
+        };
+        ViewHistory.prototype.uriGo = function (n) {
+            var arr = this.uriQueue.to(n);
+            this.uriQueue.go(arr[0]);
+        };
+        ViewHistory.prototype.empty = function () {
+            this.actQueue.empty();
+            this.uriQueue.empty();
+        };
+        return ViewHistory;
+    }());
+    exports.ViewHistory = ViewHistory;
     var Cmd = (function (_super) {
         __extends(Cmd, _super);
-        function Cmd(url, title, isUri) {
-            var _this = _super.call(this) || this;
-            _this.url = url;
-            _this.title = title;
-            _this.isUri = isUri;
-            return _this;
+        function Cmd() {
+            _super.call(this);
         }
         Cmd.prototype.success = function () {
             this.dispatch(new PEvent(exports.CmdEvent.ItemSuccess, this, true));
@@ -915,20 +1044,14 @@ define(["require", "exports"], function (require, exports) {
             this.dispatch(new PEvent(exports.CmdEvent.ItemFailure, this, true));
         };
         Cmd.prototype.execute = function () {
-            console.log(this.url, 'execute');
-            this.success();
         };
         Cmd.prototype.abort_execute = function () {
         };
         Cmd.prototype.redo = function () {
-            console.log(this.url, 'redo');
-            this.success();
         };
         Cmd.prototype.abort_redo = function () {
         };
         Cmd.prototype.undo = function () {
-            console.log(this.url, 'undo');
-            this.success();
         };
         Cmd.prototype.abort_undo = function () {
         };
@@ -953,382 +1076,99 @@ define(["require", "exports"], function (require, exports) {
         }
     }
     ;
-    var History = (function (_super) {
-        __extends(History, _super);
-        function History(maxStep) {
-            if (maxStep === void 0) { maxStep = 50; }
-            var _this = _super.call(this, undefined) || this;
-            _this.maxStep = maxStep;
-            _this._list = [];
-            _this._cache = [];
-            _this._cur = [0, 0];
-            _this._goto = [0, 0];
-            _this._first = [0, 0];
-            _this._last = [0, 0];
-            _this.addListener(exports.CmdEvent.ItemSuccess, function (pevent) {
-                var cmd = pevent.target;
-                cmd.setParent(undefined);
-                var callback = function () {
-                    _this._curItem = undefined;
-                    _this.next();
-                };
-                var item = _this._curItem;
-                if (item) {
-                    if (!item.cur) {
-                        _this._syncHistory(_this._addHistoryItem(item.cmd), callback);
-                    }
-                    else {
-                        _this._cur = item.cur;
-                        _this._syncHistory({ move: item.go, moveTitle: item.curCmd.title }, callback);
-                    }
-                }
-            }).addListener(exports.CmdEvent.ItemFailure, function (pevent) {
-                var cmd = pevent.target;
-                cmd.setParent(undefined);
-                if (_this._curItem) {
-                    _this._goto = [_this._cur[0], _this._cur[1]];
-                    _this._cache = [];
-                }
-                _this._curItem = undefined;
-                // this.cache.length = 0;
-                // this.goto = this.cur;
-                // this.curItem = undefined;
-                // this.dispatch(new PEvent(CmdEvent.Failure));
-                // this.dispatch(new PEvent(CmdEvent.Complete));
-            });
-            return _this;
+    exports.history = (function () {
+        var supportState = window.history.pushState ? true : false;
+        var cid = Date.now();
+        var undoHash = "undo@" + cid;
+        var redoHash = "redo@" + cid;
+        var curUrl = window.location.href;
+        function pushState(url) {
+            if (supportState) {
+                window.history.pushState("", "", url);
+            }
+            else {
+                window.location.href = "#" + encodeURI(url);
+            }
         }
-        History.prototype.getLength = function () {
-            return this._list.length;
-        };
-        History.prototype.getCode = function () {
-            return [this._cur[0], this._cur[1]];
-        };
-        History.prototype._pushState = function (code, url, isUri) {
-            window.history.pushState(code, "", isUri ? url : "#" + encodeURI(url));
-        };
-        History.prototype._syncHistory = function (change, callback) {
-            callback();
-        };
-        History.prototype._addHistoryItem = function (cmd) {
-            //此时_cur必定等于_goto，因为只有在_cur==_goto时才会执行新的命令
-            var moveIndex = 0, moveTitle = "";
-            if (this._cur.join('.') != this._first.join('.')) {
-                var del = this._list.splice(0, this._first[0] - this._cur[0] + this._first[0] - this._cur[1]);
-                this._first = [this._cur[0], this._cur[1]];
-            }
-            if (cmd.isUri) {
-                if (this._cur[1] != 0) {
-                    var del = this._list.splice(0, this._cur[1]);
-                    moveIndex -= this._cur[1];
-                    this._cur[1] = 0;
-                    this._goto[1] = 0;
-                    var moveCmd = this.getCmdByCode(this._cur.join("."));
-                    moveTitle = moveCmd.title;
-                }
-                this._cur[0]++;
-                this._goto[0]++;
-            }
-            else {
-                this._cur[1]++;
-                this._goto[1]++;
-            }
-            var item = {
-                code: this._cur.join('.'),
-                cmd: cmd
-            };
-            this._list.unshift(item);
-            if (this._list.length > this.maxStep) {
-                this._list.length = this.maxStep;
-            }
-            this._first = [this._cur[0], this._cur[1]];
-            var last = this._list[this._list.length - 1];
-            var arr = last.code.split('.');
-            this._last = [parseInt(arr[0]), parseInt(arr[1])];
-            return { move: moveIndex, moveTitle: moveTitle, push: { code: item.code, url: cmd.url, title: cmd.title, isUri: cmd.isUri } };
-        };
-        History.prototype.getCmdByCode = function (code) {
-            var item = this._list.find(function (item) {
-                return item.code == code;
-            });
-            return item ? item.cmd : undefined;
-        };
-        History.prototype.go = function (n) {
-            this._cache.push(n);
-            this.next();
-        };
-        History.prototype.push = function (cmd) {
-            var arr = Array.isArray(cmd) ? cmd : [cmd];
-            (_a = this._cache).push.apply(_a, arr);
-            this.next();
-            var _a;
-        };
-        History.prototype.added = function (cmd) {
-            this._addHistoryItem(cmd);
-        };
-        History.prototype._executeGoto = function () {
-            var g = this._goto;
-            var c = this._cur;
-            var uriN = g[0] - c[0];
-            if (uriN == 0) {
-                if (g[1] < c[1]) {
-                    this._curItem = {
-                        cmd: this.getCmdByCode(c.join('.')),
-                        cur: [c[0], c[1] - 1],
-                        curCmd: this.getCmdByCode([c[0], c[1] - 1].join('.')),
-                        go: -1
-                    };
-                    this._curItem.cmd.setParent(this);
-                    this._curItem.cmd.undo();
+        return {
+            push: function (url) {
+                pushState(url);
+                pushState(redoHash);
+            },
+            init: function () {
+                if (supportState) {
+                    bindEventListener(window, 'popstate', function (e) {
+                        console.log('state', window.location.href, e);
+                    });
+                    window.history.replaceState("", "back", undoHash);
+                    window.history.pushState("", "", curUrl);
+                    window.history.pushState("", "forward", redoHash);
                 }
                 else {
-                    this._curItem = {
-                        cmd: this.getCmdByCode([c[0], c[1] + 1].join('.')),
-                        cur: [c[0], c[1] + 1],
-                        curCmd: null,
-                        go: 1
-                    };
-                    this._curItem.curCmd = this._curItem.cmd;
-                    this._curItem.cmd.setParent(this);
-                    this._curItem.cmd.redo();
+                    bindEventListener(window, 'hashchange', function (e) {
+                        console.log('hash', window.location.hash, e);
+                    });
+                    window.location.replace(undoHash);
+                    window.location.href = curUrl;
+                    window.location.href = redoHash;
                 }
-            }
-            else {
-                this._curItem = {
-                    cmd: this.getCmdByCode([g[0], 0].join('.')),
-                    cur: [g[0], 0],
-                    curCmd: null,
-                    go: uriN - c[1]
-                };
-                this._curItem.curCmd = this._curItem.cmd;
-                this._curItem.cmd.setParent(this);
-                this._curItem.cmd.redo();
+                window.history.go(-1);
+                // window.setTimeout(function(){//fix ie8下触发多次
+                //     bindEventListener(window, 'hashchange', function(e){
+                //         console.log('hash',window.location.hash);
+                //         console.log(e);
+                //         // if(ready){
+                //         //     ready = false;
+                //         //     dispatchEvent("historyReady");
+                //         //     return true;
+                //         // }
+                //         // if(disableChange){
+                //         //     disableChange--;
+                //         //     if(evt){
+                //         //         dispatchEvent(evt);
+                //         //         evt = null;
+                //         //     }
+                //         //     return true;
+                //         // }
+                //         // var hash = window.location.hash;
+                //         // hash = hash?hash:"#";
+                //         // if(hash == undoHash){
+                //         //     disableChange++;
+                //         //     window.history.go(1);
+                //         //     evt = "historyUndo";
+                //         // }else if(hash == redoHash){
+                //         //     disableChange++;
+                //         //     window.history.go(-1);
+                //         //     evt = "historyRedo";
+                //         // }else{
+                //         //     potato.alert(potato.errors.a10);
+                //         //     potato.setHash(redoHash.substr(1));
+                //         //     disableChange++;
+                //         //     window.history.go(-1);
+                //         // }
+                //     });
+                //     //ready = true;
+                // },0);
             }
         };
-        History.prototype._checkGoto = function (item) {
-            var gotoCode = [this._goto[0], this._goto[1]];
-            if (typeof item == "number") {
-                if (item < 0) {
-                    var n = this._cur[1] + item;
-                    if (n < 0) {
-                        gotoCode[0] += n;
-                        gotoCode[1] = 0;
-                    }
-                    else {
-                        gotoCode[1] = n;
-                    }
-                }
-                else if (item > 0) {
-                    var n = gotoCode[0] + item - this._first[0];
-                    if (n >= 0) {
-                        gotoCode[0] = this._first[0];
-                        gotoCode[1] += n;
-                    }
-                    else {
-                        gotoCode = [gotoCode[0] + item, 0];
-                    }
-                }
-            }
-            else {
-                var arr = item.split('.');
-                gotoCode = [parseInt(arr[0]), parseInt(arr[1])];
-            }
-            if (gotoCode[0] > this._first[0]) {
-                gotoCode[0] = this._first[0];
-            }
-            if (gotoCode[0] < this._last[0]) {
-                gotoCode[0] = this._last[0];
-            }
-            if (gotoCode[0] == this._first[0]) {
-                if (gotoCode[1] > this._first[1]) {
-                    gotoCode[1] = this._first[1];
-                }
-            }
-            else {
-                gotoCode[1] = 0;
-            }
-            return gotoCode;
-        };
-        History.prototype.next = function () {
-            if (this._curItem) {
-                return;
-            }
-            if (this._cur.join('.') != this._goto.join('.')) {
-                this._executeGoto();
-            }
-            else {
-                var item = this._cache.shift();
-                if (item instanceof Cmd) {
-                    this._curItem = {
-                        cmd: item,
-                        cur: null,
-                        curCmd: null,
-                        go: 0
-                    };
-                    item.setParent(this);
-                    item.execute();
-                }
-                else if (item) {
-                    this._goto = this._checkGoto(item);
-                    this.next();
-                }
-                else {
-                    console.log("Complete", this._cur, this._goto, this._list);
-                }
-            }
-        };
-        return History;
-    }(PDispatcher));
-    exports.History = History;
-    // export let history = (function () {
-    //     let history = new History();
-    //     return history;
-    // let supportState = window.history.pushState?true:false;
-    // let initTime = Date.now();
-    // let initId = initTime+'.0';
-    // let redoUrlInit = "/redo@"+initId;
-    // let undoUrlInit = "/undo@"+initId;
-    // let undoUrl:string;
-    // let redoUrl:string; 
-    // let curUrl:string = window.location.href;
-    // let historyList:string[] = [];
-    // let historyMap:{[key:string]:any} = {};
-    // let curIndex:string = initId;
-    // let gotoN:number=0;
-    // let gotoCmd:Cmd;
-    // function parseIndex(str:string):[number,number]{
-    //     let arr = str.split('.');
-    //     return [parseInt(arr[0]),parseInt(arr[1])];
-    // }
-    // function pushState(code:string,url:string,data:any):string{
-    //     if(supportState){
-    //         window.history.pushState(code,"","#"+encodeURI(url+'/'+code));
-    //     }else{
-    //         window.location.href = "#"+ encodeURI(url+'@'+code);
-    //     }
-    //     historyList.push(code);
-    //     historyMap[code] = data;
-    //     return window.location.href;
-    // }
-    // return {
-    //     back: function(){
-    //     },
-    //     pushUri : function(url:string,cmd:any={}){
-    //         let [curUriIndex,curActIndex] = parseIndex(curIndex);
-    //         if(curActIndex>0){
-    //             window.history.go(-curActIndex);
-    //         }
-    //         curUriIndex++;
-    //         curIndex = curUriIndex+'.'+0;
-    //         pushState(curIndex,url,[url]);
-    //     },
-    //     init : function(){
-    //         this.pushUri('init');
-    //         if(supportState){
-    //             bindEventListener(window, 'popstate', function(e){
-    //                 let code = e.state;
-    //                 if(code){
-    //                     let [uriIndex,actIndex] = parseIndex(code);
-    //                     let [curUriIndex,curActIndex] = parseIndex(curIndex);
-    //                     if(initTime <= uriIndex){
-    //                         let n = (curActIndex-actIndex)+(curUriIndex-uriIndex);
-    //                         console.log('go ',n);
-    //                         if(n!=0 && historyMap[code]){
-    //                             gotoN = -n;
-    //                             if(gotoN<0){//undo
-    //                                 if(curActIndex>0){
-    //                                     curActIndex
-    //                                 }
-    //                                 gotoCmd = historyMap[code];
-    //                             }
-    //                             gotoCmd = historyMap[code];
-    //                             window.history.go(n);
-    //                         }else if(gotoN){
-    //                             console.log(gotoCmd, gotoN>0?'redo':'undo', gotoN);
-    //                             //gotoCmd.execute();
-    //                             gotoN = 0;
-    //                         }
-    //                         //window.history.go(curIndex - index);
-    //                     }
-    //                 }
-    //                 // let url:string = window.location.href;
-    //                 // let index = historys.indexOf(url);
-    //                 // if(index > -1){
-    //                 //     console.log(curIndex - index);
-    //                 //     window.history.go(curIndex - index);
-    //                 // }
-    //                 // console.log('state',url);
-    //                 // if(url==redoUrl){
-    //                 //     window.history.go(-1);
-    //                 //     console.log("=== redo ===");
-    //                 // }else if(url==undoUrl){
-    //                 //     window.history.go(1);
-    //                 //     console.log("=== undo ===");
-    //                 // }else{
-    //                 //     console.log("=== change ===");
-    //                 // }
-    //             });
-    //         }else{
-    //             bindEventListener(window, 'hashchange', function(e){
-    //                 console.log('hash',window.location.hash,e);
-    //             });
-    //         }
-    //         // window.setTimeout(function(){//fix ie8下触发多次
-    //         //     bindEventListener(window, 'hashchange', function(e){
-    //         //         console.log('hash',window.location.hash);
-    //         //         console.log(e);
-    //         //         // if(ready){
-    //         //         //     ready = false;
-    //         //         //     dispatchEvent("historyReady");
-    //         //         //     return true;
-    //         //         // }
-    //         //         // if(disableChange){
-    //         //         //     disableChange--;
-    //         //         //     if(evt){
-    //         //         //         dispatchEvent(evt);
-    //         //         //         evt = null;
-    //         //         //     }
-    //         //         //     return true;
-    //         //         // }
-    //         //         // var hash = window.location.hash;
-    //         //         // hash = hash?hash:"#";
-    //         //         // if(hash == undoUrl){
-    //         //         //     disableChange++;
-    //         //         //     window.history.go(1);
-    //         //         //     evt = "historyUndo";
-    //         //         // }else if(hash == redoUrl){
-    //         //         //     disableChange++;
-    //         //         //     window.history.go(-1);
-    //         //         //     evt = "historyRedo";
-    //         //         // }else{
-    //         //         //     potato.alert(potato.errors.a10);
-    //         //         //     potato.setHash(redoUrl.substr(1));
-    //         //         //     disableChange++;
-    //         //         //     window.history.go(-1);
-    //         //         // }
-    //         //     });
-    //         //     //ready = true;
-    //         // },0);
-    //     }
-    // }
-    // })();
+    })();
     function initHistory() {
         var supportState = window.history.pushState ? true : false;
         var cid = Date.now();
-        var undoUrl = "#undo@" + cid;
-        var redoUrl = "#redo@" + cid;
+        var undoHash = "#undo@" + cid;
+        var redoHash = "#redo@" + cid;
         var curHash = window.location.hash;
         curHash = curHash ? curHash : "#";
         var ready = false;
         if (supportState) {
-            window.history.replaceState("", "back", undoUrl);
+            window.history.replaceState("", "back", undoHash);
             window.history.pushState("", "", curHash);
-            window.history.pushState("", "forward", redoUrl);
+            window.history.pushState("", "forward", redoHash);
         }
         else {
-            window.location.replace(undoUrl);
+            window.location.replace(undoHash);
             window.location.href = curHash;
-            window.location.href = redoUrl;
+            window.location.href = redoHash;
         }
         var dispatchEvent = function (e) {
             window.setTimeout(function () {
@@ -1357,17 +1197,17 @@ define(["require", "exports"], function (require, exports) {
                 // }
                 // var hash = window.location.hash;
                 // hash = hash?hash:"#";
-                // if(hash == undoUrl){
+                // if(hash == undoHash){
                 //     disableChange++;
                 //     window.history.go(1);
                 //     evt = "historyUndo";
-                // }else if(hash == redoUrl){
+                // }else if(hash == redoHash){
                 //     disableChange++;
                 //     window.history.go(-1);
                 //     evt = "historyRedo";
                 // }else{
                 //     potato.alert(potato.errors.a10);
-                //     potato.setHash(redoUrl.substr(1));
+                //     potato.setHash(redoHash.substr(1));
                 //     disableChange++;
                 //     window.history.go(-1);
                 // }

@@ -4,9 +4,10 @@
  * Licensed under the MIT license
  */
 
-declare var require: (deps:string[],succCallback:(data:any)=>void,failCallback:(error:any)=>void)=>void;
-declare var define : (id:string, mod:any)=>void;
+declare var require: (deps: string[], succCallback: (data: any) => void, failCallback: (error: any) => void) => void;
+declare var define: (id: string, mod: any) => void;
 
+let autoID: number = 0;
 let namespace: string = 'po-to/tomato';
 
 export const TaskCountEvent = {
@@ -33,9 +34,18 @@ export const DialogEvent = {
     Closed: "DialogEvent.Closed",
 }
 
+export const CmdEvent = {
+    ItemSuccess: "CmdEvent.ItemSuccess",
+    ItemFailure: "CmdEvent.ItemFailure",
+    Failure: "CmdEvent.Failure",
+    Success: "CmdEvent.Success",
+    Complete: "CmdEvent.Complete",
+    Overflow: "CmdEvent.Overflow"
+}
+
 export class PEvent {
     readonly target: PDispatcher;
-    
+
     constructor(public readonly name: string, public readonly data?: any, public bubbling: boolean = false) {
     }
     _setTarget(target: PDispatcher): this {
@@ -43,11 +53,11 @@ export class PEvent {
         return this;
     }
 }
-export class PError {
+export class PError extends Error {
     constructor(public readonly name: string, public readonly note: string = "tomato.PError", public readonly data?: { file: string, line: string, detail: any }) {
-
+        super(name);
     }
-    
+
     getNamespace(): string {
         return namespace;
     }
@@ -63,7 +73,7 @@ export class PDispatcher {
     constructor(public readonly parent?: PDispatcher | undefined) {
     }
     protected readonly _handlers: { [key: string]: Array<(e: PEvent) => void> } = {};
-    
+
     addListener(ename: string, handler: (e: PEvent) => void): this {
         let dictionary = this._handlers[ename];
         if (!dictionary) {
@@ -124,7 +134,7 @@ export class TaskCounter extends PDispatcher {
     constructor(public deferSecond: number) {
         super();
     }
-    addItem(promise: Promise<any>, note: string): this {
+    addItem(promise: Promise<any>, note: string = ''): Promise<any> {
         if (!this.list.find((item) => item.promise === promise)) {
             this.list.push({ promise: promise, note: note });
             promise.then(value => this._completeItem(promise), reason => this._completeItem(promise));
@@ -139,7 +149,7 @@ export class TaskCounter extends PDispatcher {
                 }, this.deferSecond * 1000);
             }
         }
-        return this;
+        return promise;
     }
     private _completeItem(promise: Promise<any>): this {
         let i = this.list.findIndex((item) => item.promise === promise);
@@ -169,22 +179,28 @@ export interface View {
     addClass(className: string): any;
 }
 
-export interface VPView extends View{
-    getVPID(): string|string[];
-    getVPCON(id?:string): string;
+export interface VPView extends View {
+    getVPID(): string;
+    getVPCON(): string;
+    setVPID(id: string): void;
     getSUBS(): VPView[];
 }
 
-let createVPView:(html:string)=>VPView = function(html:string):VPView{
+let createVPView: (html: string) => VPView = function (html: string): VPView {
     return {} as VPView;
 };
 
 export class VPresenter extends PDispatcher {
     public readonly parent: VPresenter | undefined;
-    constructor(public readonly view: VPView, parent?: VPresenter, public readonly vpid?:string) {
+    constructor(public readonly view: VPView, parent?: VPresenter, public readonly vpid?: string) {
         super(parent);
     }
-
+    isWholeVPresenter(): boolean {
+        return typeof (this['getHeader']) == 'function' && typeof (this['getFooter']) == 'function' && typeof (this['getAside']) == 'function';
+    }
+    init(subs: VPresenter[]): Promise<this> | any {
+        return null;
+    }
     protected _allowInstallTo(parent: VPresenter): boolean {
         return true;
     }
@@ -197,14 +213,13 @@ export class VPresenter extends PDispatcher {
     protected _allowRemoveChild(child: VPresenter): boolean {
         return true;
     }
-    protected _installTo(parent: VPresenter): void {
-        super.setParent(parent);
-        this.dispatch(new PEvent(VPresenterEvent.Installed));
+    protected _beforeInstallTo(parent: VPresenter): void {
     }
-
-    protected _uninstallTo(parent: VPresenter): void {
-        super.setParent(undefined);
-        this.dispatch(new PEvent(VPresenterEvent.Uninstalled));
+    protected _beforeUninstallTo(parent: VPresenter): void {
+    }
+    protected _afterInstallTo(parent: VPresenter): void {
+    }
+    protected _afterUninstallTo(parent: VPresenter): void {
     }
     protected _afterRemoveChild(member: VPresenter): void {
         this.view.removeChild(member.view);
@@ -230,9 +245,12 @@ export class VPresenter extends PDispatcher {
             return false;
         }
         this._beforeRemoveChild(member);
-        member._uninstallTo(this);
+        member._beforeUninstallTo(this);
+        member.setParent(undefined);
         this._afterRemoveChild(member);
+        member._afterUninstallTo(this);
         this.dispatch(new PEvent(VPresenterEvent.ChildRemoved));
+        member.dispatch(new PEvent(VPresenterEvent.Uninstalled));
         return true;
     }
     protected _checkAppendChild(member: VPresenter): boolean {
@@ -244,10 +262,10 @@ export class VPresenter extends PDispatcher {
         ) { return false; }
         return true;
     }
-    getParentDialog():Dialog{
-        let parent:VPresenter|undefined = this.parent;
-        while(parent){
-            if(parent instanceof Dialog){
+    getParentDialog(): Dialog {
+        let parent: VPresenter | undefined = this.parent;
+        while (parent) {
+            if (parent instanceof Dialog) {
                 return parent;
             }
             parent = parent.parent;
@@ -261,18 +279,24 @@ export class VPresenter extends PDispatcher {
         }
         if (member.parent) { member.parent.removeChild(member, true) }
         this._beforeAppendChild(member);
-        member._installTo(this);
+        member._beforeInstallTo(this);
+        member.setParent(this);
         this._afterAppendChild(member);
+        member._afterInstallTo(this);
         this.dispatch(new PEvent(VPresenterEvent.ChildAppended));
+        member.dispatch(new PEvent(VPresenterEvent.Installed));
         return true;
     }
     _update(): Promise<this> {
         return Promise.resolve(this);
     }
-    destroy():void{
-        if(this.vpid){
+    destroy(): void {
+        if (this.vpid) {
             delete VPresenterStore[this.vpid];
         }
+    }
+    getDialogClassName(): string {
+        return "";
     }
 }
 
@@ -280,11 +304,10 @@ let VPresenterStore: { [key: string]: VPresenter | Promise<VPresenter> } = {}
 
 export function getVPresenter<T>(data: string | VPView, successCallback?: (vp: T) => void, failueCallback?: (error: Error) => void): T | Promise<T> {
     let id: string;
-    let view:VPView|null;
+    let view: VPView | null;
     if (typeof data != "string") {
         view = data;
-        let ids = data.getVPID();
-        id = typeof(ids)=="string"?ids:ids[0];
+        id = data.getVPID();
     } else {
         view = null;
         id = data;
@@ -298,63 +321,72 @@ export function getVPresenter<T>(data: string | VPView, successCallback?: (vp: T
         cacheData.then(success, failue);
         return cacheData;
     }
-    let onError = function(error:Error,reject:(error:Error)=>void){
+    let onError = function (error: Error, reject: (error: Error) => void) {
         delete VPresenterStore[id];
         failueCallback && failueCallback(error);
+        console.log(error);
         reject(error);
     }
-    let onSuccess = function(con:Function,dom:VPView,resolve:(vp:T)=>void,reject:(error:Error)=>void){
-        let vp:VPresenter|null = null;
-        try{
-            vp = new (con as any)(dom,undefined,id);
-        }catch(e){
-            onError(e,reject);
+    let onSuccess = function (con: Function, dom: VPView, resolve: (vp: T) => void, reject: (error: Error) => void) {
+        let vp: VPresenter | null = null;
+        try {
+            vp = new (con as any)(dom, undefined, id);
+        } catch (e) {
+            onError(e, reject);
         }
-        if(vp){
-            Promise.all(dom.getSUBS().map(function(dom){
+        if (vp) {
+            Promise.all(dom.getSUBS().map(function (dom) {
+                let id = dom.getVPID();
+                if (VPresenterStore[id]) {
+                    dom.setVPID(id + "#" + (++autoID));
+                }
                 return getVPresenter(dom);
             })).then(
-                function(){
+                function (list) {
+                    return vp && vp.init(list as any);
+                }
+                ).then(
+                function () {
                     successCallback && successCallback(vp as any);
                     resolve(vp as any);
-                },
-                function(e){
-                    onError(e,reject);
                 }
-            )
+                )['catch'](function (e) {
+                    onError(e, reject);
+                })
         }
     }
-    
+
     let promise = new Promise<T>(function (resolve, reject) {
-        let init = function(dom:VPView){
-            let conPath = dom.getVPCON(id);
-            if(conPath){
+        let init = function (dom: VPView) {
+            let conPath = dom.getVPCON();
+            if (conPath) {
                 require([conPath], function (con: Function) {
-                    onSuccess(con,dom,resolve,reject);
-                },function(err){
-                    onError(err,reject);
+                    onSuccess(con, dom, resolve, reject);
+                }, function (err) {
+                    onError(err, reject);
                 })
-            }else{
-                onSuccess(VPresenter,dom,resolve,reject);
+            } else {
+                onSuccess(VPresenter, dom, resolve, reject);
             }
         }
-        if(view){
+        if (view) {
             init(view);
-        }else{
+        } else {
             require([id], function (obj: string | VPView) {
                 if (typeof obj == "string") {
                     view = createVPView(obj);
-                }else{
+                } else {
                     view = obj;
                 }
                 init(view);
             }, function (err) {
-                onError(err,reject);
+                onError(err, reject);
             })
         }
-        
+
     });
     VPresenterStore[id] = promise as any;
+    taskCounter.addItem(promise, 'load:' + id);
     return promise;
 }
 
@@ -381,6 +413,7 @@ export interface DialogConfig {
     footerEffect: string | undefined;
     asideEffect: string | undefined;
     bodyEffect: string | undefined;
+    rootUriCmd?: Cmd | undefined;
 }
 export interface DialogConfigOptions {
     className?: string;
@@ -396,8 +429,10 @@ export interface DialogConfigOptions {
     footerEffect?: string;
     asideEffect?: string;
     bodyEffect?: string;
+    rootUriCmd?: Cmd;
 }
 export abstract class Dialog extends VPresenter {
+    public readonly history = new History();
     public readonly parent: Dialog | undefined;
     public readonly view: LayerView;
     public readonly state: DialogState = DialogState.Closed;
@@ -411,6 +446,11 @@ export abstract class Dialog extends VPresenter {
 
     protected readonly _dialogList: Dialog[] = [];
     private _zindex: number = -1;
+    private _contentClassName: string;
+    protected _contentHeader: View | null;
+    protected _contentFooter: View | null;
+    protected _contentAside: View | null;
+
     public readonly config: DialogConfig = {
         className: '',
         masked: false,
@@ -424,7 +464,8 @@ export abstract class Dialog extends VPresenter {
         headerEffect: undefined,
         footerEffect: undefined,
         asideEffect: undefined,
-        bodyEffect: undefined
+        bodyEffect: undefined,
+        rootUriCmd: undefined
     }
 
     constructor(els: { view: LayerView, dialog: View, mask: View, body?: View, header?: View, footer?: View, aside?: View }, config?: DialogConfigOptions) {
@@ -448,11 +489,11 @@ export abstract class Dialog extends VPresenter {
     getZIndex(): number {
         return this._zindex;
     }
-    getFocusedChild():Dialog{
+    getFocusedChild(): Dialog {
         let list = this._dialogList;
-        let dialog:Dialog = this;
-        while(list.length){
-            dialog = list[list.length-1];
+        let dialog: Dialog = this;
+        while (list.length) {
+            dialog = list[list.length - 1];
             list = dialog._dialogList;
         }
         return dialog;
@@ -516,7 +557,7 @@ export abstract class Dialog extends VPresenter {
         return true;
     }
     private _checkFocus(): boolean {
-        if (this == application) { return true; }
+        if ((this as any) == application) { return true; }
         if (!this.parent) { return false; }
         let parentDialog: Dialog = this.parent;
         if (this.state != DialogState.Focused) {
@@ -541,10 +582,10 @@ export abstract class Dialog extends VPresenter {
         }
         return true;
     }
-    focus(checked?: boolean): boolean {
+    focus(_checked?: boolean, _parentCall?: boolean): boolean {
         /* 三种调用场景：1.由close()上文调用；2.当前为closed状态; 3.当前为blured状态 */
         //if (this.state == DialogState.Focused) { return false; }
-        if (!checked && !this._checkFocus()) { return false; }
+        if (!_checked && !this._checkFocus()) { return false; }
         let parentDialog: Dialog = this.parent as Dialog;
         let list = parentDialog._dialogList;
         let blurDialog: Dialog | undefined = list[list.length - 1];
@@ -566,7 +607,7 @@ export abstract class Dialog extends VPresenter {
             }
         }
         if (initiative) {
-            parentDialog.focus();
+            parentDialog.focus(false, true);
         }
         if (this.state != DialogState.Focused) {
             blurDialog && blurDialog._blur();
@@ -578,7 +619,14 @@ export abstract class Dialog extends VPresenter {
                 this.refreshLayout();
             }
             this._afterFocus();
+            if (!_parentCall) {
+                setTopDialog(this);
+            }
             this.dispatch(new PEvent(DialogEvent.Focused));
+            if (this.content) {
+                this.content.dispatch(new PEvent(DialogEvent.Focused));
+            }
+
         }
         return true;
     }
@@ -603,7 +651,11 @@ export abstract class Dialog extends VPresenter {
         this.refreshLayout();
         this._afterClose();
         this.dispatch(new PEvent(DialogEvent.Closed));
+        if (this.content) {
+            this.content.dispatch(new PEvent(DialogEvent.Closed));
+        }
         focusDialog && focusDialog.focus(true);
+        !focusDialog && setTopDialog(parentDialog);
         return true;
     }
 
@@ -613,6 +665,9 @@ export abstract class Dialog extends VPresenter {
         this._setState(DialogState.Blured);
         this._afterBlur();
         this.dispatch(new PEvent(DialogEvent.Blured));
+        if (this.content) {
+            this.content.dispatch(new PEvent(DialogEvent.Blured));
+        }
     }
     protected _setState(state: DialogState): void {
         this.view.removeClass("pt-" + DialogState[this.state]);
@@ -631,7 +686,6 @@ export abstract class Dialog extends VPresenter {
             return false;
         }
         if (!(child instanceof Dialog)) {
-            let oldContent = this.content;
             if (this.content) {
                 let member = this.content;
                 if (member.parent != this) { return false; }
@@ -648,23 +702,25 @@ export abstract class Dialog extends VPresenter {
         if (member instanceof Dialog) {
             this.view.appendChild(member.view);
         } else {
+            this._contentClassName = member.getDialogClassName();
+            this.view.addClass(this._contentClassName);
             if (this.body) {
-                this.body.appendChild(member.view)
+                this.body.appendChild(member.view);
             } else {
-                this.dialog.appendChild(member.view)
+                this.dialog.appendChild(member.view);
             }
-            if (member instanceof WholeVPresenter) {
-                let view = member.getHeader();
-                if (view && this.header) {
-                    this.header.appendChild(view);
+            if (member.isWholeVPresenter()) {
+                this._contentHeader = (member as WholeVPresenter).getHeader();
+                if (this._contentHeader && this.header) {
+                    this.header.appendChild(this._contentHeader);
                 }
-                view = member.getFooter();
-                if (view && this.footer) {
-                    this.footer.appendChild(view);
+                this._contentFooter = (member as WholeVPresenter).getFooter();
+                if (this._contentFooter && this.footer) {
+                    this.footer.appendChild(this._contentFooter);
                 }
-                view = member.getAside();
-                if (view && this.aside) {
-                    this.aside.appendChild(view);
+                this._contentAside = (member as WholeVPresenter).getAside();
+                if (this._contentAside && this.aside) {
+                    this.aside.appendChild(this._contentAside);
                 }
             }
             if (this.state != DialogState.Closed) {
@@ -682,24 +738,26 @@ export abstract class Dialog extends VPresenter {
         if (member instanceof Dialog) {
             this.view.removeChild(member.view);
         } else {
+            if (this._contentClassName) {
+                this.view.removeClass(this._contentClassName);
+                this._contentClassName = "";
+            }
             if (this.body) {
                 this.body.removeChild(member.view)
             } else {
                 this.dialog.removeChild(member.view)
             }
-            if (member instanceof WholeVPresenter) {
-                let view = member.getHeader();
-                if (view && this.header) {
-                    this.header.removeChild(view);
-                }
-                view = member.getFooter();
-                if (view && this.footer) {
-                    this.footer.removeChild(view);
-                }
-                view = member.getAside();
-                if (view && this.aside) {
-                    this.aside.removeChild(view);
-                }
+            if (this._contentHeader && this.header) {
+                this.header.removeChild(this._contentHeader);
+                this._contentHeader = null;
+            }
+            if (this._contentFooter && this.footer) {
+                this.footer.removeChild(this._contentFooter);
+                this._contentFooter = null;
+            }
+            if (this._contentAside && this.aside) {
+                this.aside.removeChild(this._contentAside);
+                this._contentAside = null;
             }
         }
     }
@@ -714,25 +772,113 @@ export abstract class Dialog extends VPresenter {
     }
 }
 
-export class WholeVPresenter extends VPresenter {
-    getHeader(): View | null { return null; }
-    getFooter(): View | null { return null; }
-    getAside(): View | null { return null; }
+export interface WholeVPresenter extends VPresenter {
+    getHeader(): View | null;
+    getFooter(): View | null;
+    getAside(): View | null;
 }
 
 export class Application extends Dialog {
 
+    public initTime = Date.now();
     constructor(els: { view: LayerView, dialog: View, mask: View, body?: View, header?: View, footer?: View, aside?: View }, config?: DialogConfigOptions) {
         super(els, config);
         this._setZIndex(0);
         this._setState(DialogState.Focused);
+        this.view.addClass("pt-topDialog");
         taskCounter.addListener(TaskCountEvent.Added, e => {
-            this.mask.removeClass("pt-hide").addClass("pt-show");
+            this.mask.addClass("pt-show");
+        }).addListener(TaskCountEvent.Completed, e => {
+            this.mask.removeClass("pt-show");
         }).addListener(TaskCountEvent.Busy, e => {
             this.mask.addClass("pt-busy");
         }).addListener(TaskCountEvent.Free, e => {
-            this.mask.removeClass("pt-show pt-busy").addClass("pt-hide");
+            this.mask.removeClass("pt-busy");
         })
+        if(config && config.rootUriCmd){
+            this._initHistory(this.initTime,config.rootUriCmd);
+        }
+    }
+    private _initHistory(initTime,rootUriCmd){
+        let supportState = window.history.pushState?true:false;
+        let _trigger:boolean|(()=>void);
+        let history = this.history;
+       
+        function pushState(code:string,title:string,url:string,isUri:boolean){
+            window.history.pushState(code,title,isUri?url:"#"+encodeURI(url));
+        }
+        function addState(code:string){
+            window.history.replaceState(initTime+"."+code, document.title, window.location.href);
+        }
+        history._syncHistory = function(change:{move?:number, moveTitle?:string, push?:{ code: string, url: string, title: string, isUri: boolean }},callback:()=>void){
+            let execute = function(){
+                if(change.push){
+                    pushState(initTime+ '.' + change.push.code,change.push.title,change.push.url,change.push.isUri);
+                    document.title = change.push.title;
+                }
+                setTimeout(callback,1);
+            }
+            if(change.move){
+                _trigger = function(){
+                    document.title = change.moveTitle||'';
+                    execute();
+                };
+                window.history.go(change.move);
+            }else{
+                execute();
+            }
+        }
+        function handlerHistory(str:string){
+            let [flag,uri,act] = str.split(".").map(function(val){
+                return parseInt(val);
+            });
+            if(flag==initTime){
+                let cmd = history.getCmdByCode(uri+'.'+act);
+                if(cmd){
+                    let [curUri,curAct] = history.getCode();
+                    let n = curUri-uri+curAct-act;
+                    if(n!=0){
+                        let title = document.title;
+                        document.title = cmd.title;
+                        _trigger = function(){
+                            document.title = title;
+                            setTimeout(function(){history.go(-n);},1);//异步触发
+                        };
+                        window.history.go(n);
+                    }
+                }else{
+                    window.location.reload();
+                }
+            }else{
+                window.location.reload();
+            }
+        }
+        function handlerChange(e:{state:string}){
+            if(_trigger){
+                if(typeof _trigger=="function"){
+                    _trigger();
+                }
+                _trigger = false;
+            }else{
+                if(history.getLength()){
+                    if(e.state){
+                        handlerHistory(e.state);
+                    }else{
+                        history.added(new Cmd(window.location.href,document.title,false));
+                        addState(history.getCode().join("."));
+                    }
+                }
+            }
+        }
+        if(supportState){
+            bindEventListener(window, 'popstate', handlerChange);
+        }else{
+            bindEventListener(window, 'hashchange', function(e){
+                console.log('hash',window.location.hash,e);
+            });
+        }
+        history.added(rootUriCmd);
+        addState("1.0");
     }
     close(): boolean {
         return false;
@@ -745,9 +891,481 @@ export class Application extends Dialog {
 
 let application: Application = {} as any;
 
+export class Cmd extends PDispatcher {
+    constructor(public readonly url: string, public readonly title: string, public readonly isUri: boolean) {
+        super();
+    }
+    success() {
+        this.dispatch(new PEvent(CmdEvent.ItemSuccess, this, true))
+    }
+    failure() {
+        this.dispatch(new PEvent(CmdEvent.ItemFailure, this, true))
+    }
+    execute() {
+        console.log(this.url, 'execute');
+        this.success();
+    }
+    abort_execute() {
+    }
+    redo() {
+        console.log(this.url, 'redo');
+        this.success();
+    }
+    abort_redo() {
+    }
+    undo() {
+        console.log(this.url, 'undo');
+        this.success();
+    }
+    abort_undo() {
+    }
+}
+
+function bindEventListener(tag, type, fun) {
+    if (window.addEventListener) {
+        tag.addEventListener(type, fun, false);
+    } else {
+        tag.attachEvent("on" + type, fun);
+    }
+};
+function unbindEventListener(tag, type, fun) {
+    if (window.addEventListener) {
+        tag.removeEventListener(type, fun, false);
+    } else {
+        tag.detachEvent("on" + type, fun);
+    }
+};
+
+export class History extends PDispatcher {
+    private _list: { code: string, cmd: Cmd }[] = [];
+    private _cache: Array<Cmd | number | string> = [];
+    //cmd:当前正在执行的命令，cur:执行成功后指向的命令
+    private _curItem?: { cmd: Cmd, cur: [number,number]|null, curCmd:Cmd|null, go:number };
+    private _cur: [number, number] = [0, 0];
+    private _goto: [number, number] = [0, 0];
+    private _first: [number, number] = [0, 0];
+    private _last: [number, number] = [0, 0];
+
+    constructor(public maxStep:number=50) {
+        super(undefined);
+        this.addListener(CmdEvent.ItemSuccess, (pevent: PEvent) => {
+            let cmd: Cmd = pevent.target as Cmd;
+            cmd.setParent(undefined);
+            let callback = () => {
+                this._curItem = undefined;
+                this.next();
+            }
+            let item = this._curItem;
+            if (item) {
+                if(!item.cur){
+                    this._syncHistory(this._addHistoryItem(item.cmd),callback);
+                }else{
+                    this._cur = item.cur;
+                    this._syncHistory({move:item.go,moveTitle:(item.curCmd as Cmd).title},callback);
+                }
+            }
+        }).addListener(CmdEvent.ItemFailure, (pevent: PEvent) => {
+            let cmd: Cmd = pevent.target as Cmd;
+            cmd.setParent(undefined);
+            if (this._curItem) {
+                this._goto = [this._cur[0], this._cur[1]];
+                this._cache = [];
+            }
+            this._curItem = undefined;
+            // this.cache.length = 0;
+            // this.goto = this.cur;
+            // this.curItem = undefined;
+            // this.dispatch(new PEvent(CmdEvent.Failure));
+            // this.dispatch(new PEvent(CmdEvent.Complete));
+        })
+    }
+    getLength(){
+        return this._list.length;
+    }
+    getCode(){
+        return [this._cur[0],this._cur[1]];
+    }
+    private _pushState(code: string, url: string, isUri: boolean) {
+        window.history.pushState(code, "", isUri ? url : "#" + encodeURI(url));
+    }
+    public _syncHistory(change:{move?:number, moveTitle?:string, push?:{ code: string, url: string, title: string, isUri: boolean }},callback:()=>void){
+        callback();
+    }
+    private _addHistoryItem(cmd: Cmd): {move?:number, moveTitle?:string, push?:{ code: string, url: string, title: string, isUri: boolean }} {
+        //此时_cur必定等于_goto，因为只有在_cur==_goto时才会执行新的命令
+        let moveIndex: number = 0, moveTitle:string="";
+        if (this._cur.join('.') != this._first.join('.')) {
+            let del = this._list.splice(0, this._first[0]-this._cur[0]+this._first[0]-this._cur[1]);
+            this._first = [this._cur[0], this._cur[1]];
+        }
+        if (cmd.isUri) {
+            if (this._cur[1] != 0) {
+                let del = this._list.splice(0, this._cur[1]);
+                moveIndex -= this._cur[1];
+                this._cur[1] = 0;
+                this._goto[1] = 0;
+                let moveCmd:Cmd = this.getCmdByCode(this._cur.join(".")) as Cmd;
+                moveTitle = moveCmd.title;
+            }
+            this._cur[0]++;
+            this._goto[0]++;
+        } else {
+            this._cur[1]++;
+            this._goto[1]++;
+        }
+        let item = {
+            code: this._cur.join('.'),
+            cmd: cmd
+        }
+        this._list.unshift(item);
+        if(this._list.length > this.maxStep){
+            this._list.length = this.maxStep;
+        }
+        this._first = [this._cur[0], this._cur[1]];
+        let last = this._list[this._list.length-1];
+        let arr = last.code.split('.');
+        this._last = [parseInt(arr[0]),parseInt(arr[1])];
+        return {move:moveIndex, moveTitle:moveTitle, push:{ code: item.code, url: cmd.url, title: cmd.title, isUri: cmd.isUri }};
+    }
+    getCmdByCode(code: string): Cmd | undefined {
+        let item = this._list.find(function(item){
+            return item.code == code;
+        })
+        return item?item.cmd:undefined;
+    }
+    go(n: number | string) {
+        this._cache.push(n);
+        this.next();
+    }
+    push(cmd: Cmd | Cmd[]) {
+        let arr = Array.isArray(cmd) ? cmd : [cmd];
+        this._cache.push(...arr);
+        this.next();
+    }
+    added(cmd: Cmd){
+        this._addHistoryItem(cmd);
+    }
+    private _executeGoto() {
+        let g = this._goto;
+        let c = this._cur;
+        let uriN = g[0] - c[0];
+        if (uriN == 0) {//同uri内
+            if (g[1] < c[1]) {//后退一条
+                this._curItem = {
+                    cmd: this.getCmdByCode(c.join('.')) as Cmd,
+                    cur : [c[0],c[1]-1],
+                    curCmd : this.getCmdByCode([c[0],c[1]-1].join('.')) as Cmd,
+                    go : -1
+                }
+                this._curItem.cmd.setParent(this);
+                this._curItem.cmd.undo();
+            } else {//前进一条
+                this._curItem = {
+                    cmd: this.getCmdByCode([c[0], c[1] + 1].join('.')) as Cmd,
+                    cur: [c[0],c[1]+1],
+                    curCmd : null,
+                    go : 1
+                }
+                this._curItem.curCmd = this._curItem.cmd;
+                this._curItem.cmd.setParent(this);
+                this._curItem.cmd.redo();
+            }
+        } else {//跨uri
+            this._curItem = {
+                cmd: this.getCmdByCode([g[0], 0].join('.')) as Cmd,
+                cur : [g[0],0],
+                curCmd : null,
+                go : uriN - c[1]
+            }
+            this._curItem.curCmd = this._curItem.cmd;
+            this._curItem.cmd.setParent(this);
+            this._curItem.cmd.redo();
+        }
+    }
+    private _checkGoto(item: number | string): [number, number] {
+        let gotoCode: [number, number] = [this._goto[0], this._goto[1]];
+        if (typeof item == "number") {
+            if (item < 0) {
+                let n = this._cur[1] + item;
+                if (n < 0) {
+                    gotoCode[0] += n;
+                    gotoCode[1] = 0;
+                } else {
+                    gotoCode[1] = n;
+                }
+            } else if (item > 0) {
+                let n = gotoCode[0] + item - this._first[0];
+                if (n >= 0) {
+                    gotoCode[0] = this._first[0];
+                    gotoCode[1] += n;
+                } else {
+                    gotoCode = [gotoCode[0] + item, 0];
+                }
+            }
+        } else {
+            let arr = item.split('.');
+            gotoCode = [parseInt(arr[0]), parseInt(arr[1])];
+        }
+        if (gotoCode[0] > this._first[0]) {
+            gotoCode[0] = this._first[0];
+        }
+        if (gotoCode[0] < this._last[0]) {
+            gotoCode[0] = this._last[0];
+        }
+        if (gotoCode[0] == this._first[0]) {
+            if (gotoCode[1] > this._first[1]) {
+                gotoCode[1] = this._first[1];
+            }
+        } else {
+            gotoCode[1] = 0;
+        }
+        return gotoCode;
+    }
+    next() {
+        if (this._curItem) { return; }
+        if (this._cur.join('.') != this._goto.join('.')) {
+            this._executeGoto();
+        } else {
+            let item = this._cache.shift();
+            if (item instanceof Cmd) {
+                this._curItem = {
+                    cmd: item,
+                    cur:null,
+                    curCmd:null,
+                    go:0
+                }
+                item.setParent(this);
+                item.execute();
+            } else if (item) {
+                this._goto = this._checkGoto(item);
+                this.next();
+            } else {
+                console.log("Complete", this._cur, this._goto, this._list);
+            }
+        }
+    }
+
+}
+
+// export let history = (function () {
+//     let history = new History();
+//     return history;
+
+    // let supportState = window.history.pushState?true:false;
+    // let initTime = Date.now();
+    // let initId = initTime+'.0';
+    // let redoUrlInit = "/redo@"+initId;
+    // let undoUrlInit = "/undo@"+initId;
+    // let undoUrl:string;
+    // let redoUrl:string; 
+    // let curUrl:string = window.location.href;
+
+    // let historyList:string[] = [];
+    // let historyMap:{[key:string]:any} = {};
+    // let curIndex:string = initId;
+    // let gotoN:number=0;
+    // let gotoCmd:Cmd;
+
+    // function parseIndex(str:string):[number,number]{
+    //     let arr = str.split('.');
+    //     return [parseInt(arr[0]),parseInt(arr[1])];
+    // }
+    // function pushState(code:string,url:string,data:any):string{
+    //     if(supportState){
+    //         window.history.pushState(code,"","#"+encodeURI(url+'/'+code));
+    //     }else{
+    //         window.location.href = "#"+ encodeURI(url+'@'+code);
+    //     }
+    //     historyList.push(code);
+    //     historyMap[code] = data;
+    //     return window.location.href;
+    // }
+
+
+
+    // return {
+    //     back: function(){
+
+    //     },
+    //     pushUri : function(url:string,cmd:any={}){
+    //         let [curUriIndex,curActIndex] = parseIndex(curIndex);
+    //         if(curActIndex>0){
+    //             window.history.go(-curActIndex);
+    //         }
+    //         curUriIndex++;
+    //         curIndex = curUriIndex+'.'+0;
+    //         pushState(curIndex,url,[url]);
+    //     },
+    //     init : function(){
+    //         this.pushUri('init');
+    //         if(supportState){
+    //             bindEventListener(window, 'popstate', function(e){
+    //                 let code = e.state;
+    //                 if(code){
+    //                     let [uriIndex,actIndex] = parseIndex(code);
+    //                     let [curUriIndex,curActIndex] = parseIndex(curIndex);
+    //                     if(initTime <= uriIndex){
+    //                         let n = (curActIndex-actIndex)+(curUriIndex-uriIndex);
+    //                         console.log('go ',n);
+    //                         if(n!=0 && historyMap[code]){
+    //                             gotoN = -n;
+    //                             if(gotoN<0){//undo
+    //                                 if(curActIndex>0){
+    //                                     curActIndex
+    //                                 }
+    //                                 gotoCmd = historyMap[code];
+    //                             }
+    //                             gotoCmd = historyMap[code];
+    //                             window.history.go(n);
+    //                         }else if(gotoN){
+    //                             console.log(gotoCmd, gotoN>0?'redo':'undo', gotoN);
+    //                             //gotoCmd.execute();
+    //                             gotoN = 0;
+    //                         }
+    //                         //window.history.go(curIndex - index);
+    //                     }
+    //                 }
+
+    //                 // let url:string = window.location.href;
+    //                 // let index = historys.indexOf(url);
+    //                 // if(index > -1){
+    //                 //     console.log(curIndex - index);
+    //                 //     window.history.go(curIndex - index);
+    //                 // }
+
+
+    //                 // console.log('state',url);
+    //                 // if(url==redoUrl){
+    //                 //     window.history.go(-1);
+    //                 //     console.log("=== redo ===");
+    //                 // }else if(url==undoUrl){
+    //                 //     window.history.go(1);
+    //                 //     console.log("=== undo ===");
+    //                 // }else{
+    //                 //     console.log("=== change ===");
+    //                 // }
+    //             });
+    //         }else{
+    //             bindEventListener(window, 'hashchange', function(e){
+    //                 console.log('hash',window.location.hash,e);
+    //             });
+    //         }
+    //         // window.setTimeout(function(){//fix ie8下触发多次
+    //         //     bindEventListener(window, 'hashchange', function(e){
+    //         //         console.log('hash',window.location.hash);
+    //         //         console.log(e);
+    //         //         // if(ready){
+    //         //         //     ready = false;
+    //         //         //     dispatchEvent("historyReady");
+    //         //         //     return true;
+    //         //         // }
+    //         //         // if(disableChange){
+    //         //         //     disableChange--;
+    //         //         //     if(evt){
+    //         //         //         dispatchEvent(evt);
+    //         //         //         evt = null;
+    //         //         //     }
+    //         //         //     return true;
+    //         //         // }
+    //         //         // var hash = window.location.hash;
+    //         //         // hash = hash?hash:"#";
+    //         //         // if(hash == undoUrl){
+    //         //         //     disableChange++;
+    //         //         //     window.history.go(1);
+    //         //         //     evt = "historyUndo";
+    //         //         // }else if(hash == redoUrl){
+    //         //         //     disableChange++;
+    //         //         //     window.history.go(-1);
+    //         //         //     evt = "historyRedo";
+    //         //         // }else{
+    //         //         //     potato.alert(potato.errors.a10);
+    //         //         //     potato.setHash(redoUrl.substr(1));
+    //         //         //     disableChange++;
+    //         //         //     window.history.go(-1);
+    //         //         // }
+    //         //     });
+    //         //     //ready = true;
+
+    //         // },0);
+
+    //     }
+    // }
+
+
+// })();
+
+
+export function initHistory() {
+    let supportState = window.history.pushState ? true : false;
+    let cid = Date.now();
+    let undoUrl = "#undo@" + cid;
+    let redoUrl = "#redo@" + cid;
+    let curHash = window.location.hash;
+    curHash = curHash ? curHash : "#";
+    let ready = false;
+    if (supportState) {
+        window.history.replaceState("", "back", undoUrl);
+        window.history.pushState("", "", curHash);
+        window.history.pushState("", "forward", redoUrl);
+    } else {
+        window.location.replace(undoUrl);
+        window.location.href = curHash;
+        window.location.href = redoUrl;
+    }
+    var dispatchEvent = function (e) {
+        window.setTimeout(function () {//避免在dispatch过程中再次引起hashchange事件
+            // potato.dispatch(new potato.Event(e));
+            // if(e=="historyReady"){
+            //     SetReadOnly(potato, "historyReady", true);
+            // }
+        }, 0);
+    };
+
+    window.setTimeout(function () {//fix ie8下触发多次
+        bindEventListener(window, 'hashchange', function (e) {
+            console.log('hash', window.location.hash);
+            console.log(e);
+            if (ready) {
+                ready = false;
+                dispatchEvent("historyReady");
+                return true;
+            }
+            // if(disableChange){
+            //     disableChange--;
+            //     if(evt){
+            //         dispatchEvent(evt);
+            //         evt = null;
+            //     }
+            //     return true;
+            // }
+            // var hash = window.location.hash;
+            // hash = hash?hash:"#";
+            // if(hash == undoUrl){
+            //     disableChange++;
+            //     window.history.go(1);
+            //     evt = "historyUndo";
+            // }else if(hash == redoUrl){
+            //     disableChange++;
+            //     window.history.go(-1);
+            //     evt = "historyRedo";
+            // }else{
+            //     potato.alert(potato.errors.a10);
+            //     potato.setHash(redoUrl.substr(1));
+            //     disableChange++;
+            //     window.history.go(-1);
+            // }
+        });
+        ready = true;
+        window.history.go(-1);
+    }, 0);
+
+
+}
+
 export function setConfig(data: {
     namespace?: string,
     renderer?: { [key: string]: (tpl: string, data: any) => void },
+    application?: Application,
     createVPView?: (html: string) => VPView;
 }): void {
     if (data.namespace) {
@@ -756,11 +1374,15 @@ export function setConfig(data: {
     if (data.createVPView) {
         createVPView = data.createVPView;
     }
+    if (data.application) {
+        application = data.application;
+        setTopDialog(application);
+    }
     if (data.renderer) {
-        if(!data.renderer['__parse__']){
-            data.renderer['__parse__'] = function (result:any,namespace:string){
-                for(let i in result.data){
-                    if(result.hasOwnProperty(i) && result[i] && result[i].type==namespace){
+        if (!data.renderer['__parse__']) {
+            data.renderer['__parse__'] = function (result: any, namespace: string) {
+                for (let i in result.data) {
+                    if (result.hasOwnProperty(i) && result[i] && result[i].type == namespace) {
                         result[i] = this.__parse__(result[i]);
                     }
                 }
@@ -771,10 +1393,19 @@ export function setConfig(data: {
     }
 }
 
-export function getFocusedChild():Dialog{
-    return application.getFocusedChild();
+let _topDialog: Dialog;
+
+function setTopDialog(dialog: Dialog) {
+    if (_topDialog != dialog) {
+        _topDialog && _topDialog.view.removeClass("pt-topDialog");
+        _topDialog = dialog;
+        _topDialog.view.addClass("pt-topDialog");
+    }
 }
-export function bootstrap(application: Application){
+export function getTopDialog(): Dialog {
+    return _topDialog;
+}
+export function bootstrap(application: Application) {
     application = application;
 }
 export { application, namespace, taskCounter };

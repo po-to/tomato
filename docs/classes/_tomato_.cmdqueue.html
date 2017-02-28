@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<title>TaskCounter | tomato</title>
+	<title>CmdQueue | tomato</title>
 	<meta name="description" content="">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="stylesheet" href="../assets/css/main.css">
@@ -59,10 +59,10 @@
 					<a href="../modules/_tomato_.html">&quot;tomato&quot;</a>
 				</li>
 				<li>
-					<a href="_tomato_.taskcounter.html">TaskCounter</a>
+					<a href="_tomato_.cmdqueue.html">CmdQueue</a>
 				</li>
 			</ul>
-			<h1>Class TaskCounter</h1>
+			<h1>Class CmdQueue</h1>
 		</div>
 	</div>
 </header>
@@ -76,7 +76,7 @@
 						<a href="_tomato_.pdispatcher.html" class="tsd-signature-type">PDispatcher</a>
 						<ul class="tsd-hierarchy">
 							<li>
-								<span class="target">TaskCounter</span>
+								<span class="target">CmdQueue</span>
 							</li>
 						</ul>
 					</li>
@@ -89,29 +89,36 @@
 						<section class="tsd-index-section ">
 							<h3>Constructors</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-constructor tsd-parent-kind-class tsd-is-overwrite"><a href="_tomato_.taskcounter.html#constructor" class="tsd-kind-icon">constructor</a></li>
+								<li class="tsd-kind-constructor tsd-parent-kind-class tsd-is-overwrite"><a href="_tomato_.cmdqueue.html#constructor" class="tsd-kind-icon">constructor</a></li>
 							</ul>
 						</section>
 						<section class="tsd-index-section ">
 							<h3>Properties</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected"><a href="_tomato_.taskcounter.html#_handlers" class="tsd-kind-icon">_handlers</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-private"><a href="_tomato_.taskcounter.html#_timer" class="tsd-kind-icon">_timer</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_tomato_.taskcounter.html#defersecond" class="tsd-kind-icon">defer<wbr>Second</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_tomato_.taskcounter.html#list" class="tsd-kind-icon">list</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_tomato_.taskcounter.html#parent" class="tsd-kind-icon">parent</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_tomato_.taskcounter.html#state" class="tsd-kind-icon">state</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected"><a href="_tomato_.cmdqueue.html#_handlers" class="tsd-kind-icon">_handlers</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-private"><a href="_tomato_.cmdqueue.html#cache" class="tsd-kind-icon">cache</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-private"><a href="_tomato_.cmdqueue.html#cur" class="tsd-kind-icon">cur</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_tomato_.cmdqueue.html#curitem" class="tsd-kind-icon">cur<wbr>Item</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-private"><a href="_tomato_.cmdqueue.html#goto" class="tsd-kind-icon">goto</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-private"><a href="_tomato_.cmdqueue.html#history" class="tsd-kind-icon">history</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-private"><a href="_tomato_.cmdqueue.html#historymax" class="tsd-kind-icon">history<wbr>Max</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-private"><a href="_tomato_.cmdqueue.html#isuri" class="tsd-kind-icon">is<wbr>Uri</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><a href="_tomato_.cmdqueue.html#parent" class="tsd-kind-icon">parent</a></li>
 							</ul>
 						</section>
 						<section class="tsd-index-section ">
 							<h3>Methods</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-private"><a href="_tomato_.taskcounter.html#_completeitem" class="tsd-kind-icon">_complete<wbr>Item</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_tomato_.taskcounter.html#additem" class="tsd-kind-icon">add<wbr>Item</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_tomato_.taskcounter.html#addlistener" class="tsd-kind-icon">add<wbr>Listener</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_tomato_.taskcounter.html#dispatch" class="tsd-kind-icon">dispatch</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_tomato_.taskcounter.html#removelistener" class="tsd-kind-icon">remove<wbr>Listener</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_tomato_.taskcounter.html#setparent" class="tsd-kind-icon">set<wbr>Parent</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_tomato_.cmdqueue.html#addlistener" class="tsd-kind-icon">add<wbr>Listener</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_tomato_.cmdqueue.html#cancel" class="tsd-kind-icon">cancel</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_tomato_.cmdqueue.html#dispatch" class="tsd-kind-icon">dispatch</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_tomato_.cmdqueue.html#empty" class="tsd-kind-icon">empty</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_tomato_.cmdqueue.html#go" class="tsd-kind-icon">go</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-private"><a href="_tomato_.cmdqueue.html#next" class="tsd-kind-icon">next</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_tomato_.cmdqueue.html#push" class="tsd-kind-icon">push</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_tomato_.cmdqueue.html#removelistener" class="tsd-kind-icon">remove<wbr>Listener</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><a href="_tomato_.cmdqueue.html#setparent" class="tsd-kind-icon">set<wbr>Parent</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_tomato_.cmdqueue.html#to" class="tsd-kind-icon">to</a></li>
 							</ul>
 						</section>
 					</div>
@@ -123,23 +130,29 @@
 					<a name="constructor" class="tsd-anchor"></a>
 					<h3>constructor</h3>
 					<ul class="tsd-signatures tsd-kind-constructor tsd-parent-kind-class tsd-is-overwrite">
-						<li class="tsd-signature tsd-kind-icon">new <wbr>Task<wbr>Counter<span class="tsd-signature-symbol">(</span>deferSecond<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="_tomato_.taskcounter.html" class="tsd-signature-type">TaskCounter</a></li>
+						<li class="tsd-signature tsd-kind-icon">new <wbr>Cmd<wbr>Queue<span class="tsd-signature-symbol">(</span>historyMax<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span>, isUri<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">boolean</span>, parent<span class="tsd-signature-symbol">?: </span><a href="_tomato_.pdispatcher.html" class="tsd-signature-type">PDispatcher</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="_tomato_.cmdqueue.html" class="tsd-signature-type">CmdQueue</a></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<p>Overrides <a href="_tomato_.pdispatcher.html">PDispatcher</a>.<a href="_tomato_.pdispatcher.html#constructor">constructor</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/po-to/tomato/blob/9e7873a/src/tomato.ts#L133">tomato.ts:133</a></li>
+									<li>Defined in <a href="https://github.com/po-to/tomato/blob/9e7873a/src/tomato.ts#L814">tomato.ts:814</a></li>
 								</ul>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5>deferSecond: <span class="tsd-signature-type">number</span></h5>
+									<h5>historyMax: <span class="tsd-signature-type">number</span></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> isUri: <span class="tsd-signature-type">boolean</span></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> parent: <a href="_tomato_.pdispatcher.html" class="tsd-signature-type">PDispatcher</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span></h5>
 								</li>
 							</ul>
-							<h4 class="tsd-returns-title">Returns <a href="_tomato_.taskcounter.html" class="tsd-signature-type">TaskCounter</a></h4>
+							<h4 class="tsd-returns-title">Returns <a href="_tomato_.cmdqueue.html" class="tsd-signature-type">CmdQueue</a></h4>
 						</li>
 					</ul>
 				</section>
@@ -166,32 +179,98 @@
 					</div>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-private">
-					<a name="_timer" class="tsd-anchor"></a>
-					<h3><span class="tsd-flag ts-flagPrivate">Private</span> _timer</h3>
-					<div class="tsd-signature tsd-kind-icon">_timer<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
+					<a name="cache" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagPrivate">Private</span> cache</h3>
+					<div class="tsd-signature tsd-kind-icon">cache<span class="tsd-signature-symbol">:</span> <a href="_tomato_.cmd.html" class="tsd-signature-type">Cmd</a><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol"> =&nbsp;[]</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/po-to/tomato/blob/9e7873a/src/tomato.ts#L133">tomato.ts:133</a></li>
+							<li>Defined in <a href="https://github.com/po-to/tomato/blob/9e7873a/src/tomato.ts#L811">tomato.ts:811</a></li>
+						</ul>
+					</aside>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-private">
+					<a name="cur" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagPrivate">Private</span> cur</h3>
+					<div class="tsd-signature tsd-kind-icon">cur<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> =&nbsp;-1</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/po-to/tomato/blob/9e7873a/src/tomato.ts#L812">tomato.ts:812</a></li>
 						</ul>
 					</aside>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
-					<a name="defersecond" class="tsd-anchor"></a>
-					<h3>defer<wbr>Second</h3>
-					<div class="tsd-signature tsd-kind-icon">defer<wbr>Second<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
+					<a name="curitem" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagOptional">Optional</span> cur<wbr>Item</h3>
+					<div class="tsd-signature tsd-kind-icon">cur<wbr>Item<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/po-to/tomato/blob/9e7873a/src/tomato.ts#L134">tomato.ts:134</a></li>
+							<li>Defined in <a href="https://github.com/po-to/tomato/blob/9e7873a/src/tomato.ts#L814">tomato.ts:814</a></li>
+						</ul>
+					</aside>
+					<div class="tsd-type-declaration">
+						<h4>Type declaration</h4>
+						<ul class="tsd-parameters">
+							<li class="tsd-parameter">
+								<h5>callback<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">function</span></h5>
+								<ul class="tsd-parameters">
+									<li class="tsd-parameter-siganture">
+										<ul class="tsd-signatures tsd-kind-type-literal tsd-parent-kind-variable tsd-is-not-exported">
+											<li class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+										</ul>
+										<ul class="tsd-descriptions">
+											<li class="tsd-description">
+												<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+											</li>
+										</ul>
+									</li>
+								</ul>
+							</li>
+							<li class="tsd-parameter">
+								<h5>cmd<span class="tsd-signature-symbol">: </span><a href="_tomato_.cmd.html" class="tsd-signature-type">Cmd</a></h5>
+							</li>
+							<li class="tsd-parameter">
+								<h5>method<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></h5>
+							</li>
+						</ul>
+					</div>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-private">
+					<a name="goto" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagPrivate">Private</span> goto</h3>
+					<div class="tsd-signature tsd-kind-icon">goto<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> =&nbsp;-1</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/po-to/tomato/blob/9e7873a/src/tomato.ts#L813">tomato.ts:813</a></li>
 						</ul>
 					</aside>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
-					<a name="list" class="tsd-anchor"></a>
-					<h3>list</h3>
-					<div class="tsd-signature tsd-kind-icon">list<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Array</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">object</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol"> =&nbsp;[]</span></div>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-private">
+					<a name="history" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagPrivate">Private</span> history</h3>
+					<div class="tsd-signature tsd-kind-icon">history<span class="tsd-signature-symbol">:</span> <a href="_tomato_.cmd.html" class="tsd-signature-type">Cmd</a><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol"> =&nbsp;[]</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/po-to/tomato/blob/9e7873a/src/tomato.ts#L131">tomato.ts:131</a></li>
+							<li>Defined in <a href="https://github.com/po-to/tomato/blob/9e7873a/src/tomato.ts#L810">tomato.ts:810</a></li>
+						</ul>
+					</aside>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-private">
+					<a name="historymax" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagPrivate">Private</span> history<wbr>Max</h3>
+					<div class="tsd-signature tsd-kind-icon">history<wbr>Max<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/po-to/tomato/blob/9e7873a/src/tomato.ts#L816">tomato.ts:816</a></li>
+						</ul>
+					</aside>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-private">
+					<a name="isuri" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagPrivate">Private</span> <span class="tsd-flag ts-flagOptional">Optional</span> is<wbr>Uri</h3>
+					<div class="tsd-signature tsd-kind-icon">is<wbr>Uri<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/po-to/tomato/blob/9e7873a/src/tomato.ts#L816">tomato.ts:816</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -206,67 +285,9 @@
 						</ul>
 					</aside>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
-					<a name="state" class="tsd-anchor"></a>
-					<h3>state</h3>
-					<div class="tsd-signature tsd-kind-icon">state<span class="tsd-signature-symbol">:</span> <a href="../enums/_tomato_.taskcounterstate.html" class="tsd-signature-type">TaskCounterState</a><span class="tsd-signature-symbol"> =&nbsp;TaskCounterState.Free</span></div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in <a href="https://github.com/po-to/tomato/blob/9e7873a/src/tomato.ts#L132">tomato.ts:132</a></li>
-						</ul>
-					</aside>
-				</section>
 			</section>
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Methods</h2>
-				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-private">
-					<a name="_completeitem" class="tsd-anchor"></a>
-					<h3><span class="tsd-flag ts-flagPrivate">Private</span> _complete<wbr>Item</h3>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-private">
-						<li class="tsd-signature tsd-kind-icon">_complete<wbr>Item<span class="tsd-signature-symbol">(</span>promise<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span></li>
-					</ul>
-					<ul class="tsd-descriptions">
-						<li class="tsd-description">
-							<aside class="tsd-sources">
-								<ul>
-									<li>Defined in <a href="https://github.com/po-to/tomato/blob/9e7873a/src/tomato.ts#L154">tomato.ts:154</a></li>
-								</ul>
-							</aside>
-							<h4 class="tsd-parameters-title">Parameters</h4>
-							<ul class="tsd-parameters">
-								<li>
-									<h5>promise: <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></h5>
-								</li>
-							</ul>
-						</li>
-					</ul>
-				</section>
-				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
-					<a name="additem" class="tsd-anchor"></a>
-					<h3>add<wbr>Item</h3>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">add<wbr>Item<span class="tsd-signature-symbol">(</span>promise<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span>, note<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></li>
-					</ul>
-					<ul class="tsd-descriptions">
-						<li class="tsd-description">
-							<aside class="tsd-sources">
-								<ul>
-									<li>Defined in <a href="https://github.com/po-to/tomato/blob/9e7873a/src/tomato.ts#L137">tomato.ts:137</a></li>
-								</ul>
-							</aside>
-							<h4 class="tsd-parameters-title">Parameters</h4>
-							<ul class="tsd-parameters">
-								<li>
-									<h5>promise: <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></h5>
-								</li>
-								<li>
-									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> note: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> =&nbsp;&quot;&quot;</span></h5>
-								</li>
-							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Promise</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></h4>
-						</li>
-					</ul>
-				</section>
 				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="addlistener" class="tsd-anchor"></a>
 					<h3>add<wbr>Listener</h3>
@@ -311,6 +332,23 @@
 						</li>
 					</ul>
 				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="cancel" class="tsd-anchor"></a>
+					<h3>cancel</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">cancel<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/po-to/tomato/blob/9e7873a/src/tomato.ts#L856">tomato.ts:856</a></li>
+								</ul>
+							</aside>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+						</li>
+					</ul>
+				</section>
 				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
 					<a name="dispatch" class="tsd-anchor"></a>
 					<h3>dispatch</h3>
@@ -331,6 +369,86 @@
 									<h5>e: <a href="_tomato_.pevent.html" class="tsd-signature-type">PEvent</a></h5>
 								</li>
 							</ul>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="empty" class="tsd-anchor"></a>
+					<h3>empty</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">empty<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/po-to/tomato/blob/9e7873a/src/tomato.ts#L848">tomato.ts:848</a></li>
+								</ul>
+							</aside>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="go" class="tsd-anchor"></a>
+					<h3>go</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">go<span class="tsd-signature-symbol">(</span>n<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/po-to/tomato/blob/9e7873a/src/tomato.ts#L880">tomato.ts:880</a></li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>n: <span class="tsd-signature-type">number</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-private">
+					<a name="next" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagPrivate">Private</span> next</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-private">
+						<li class="tsd-signature tsd-kind-icon">next<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/po-to/tomato/blob/9e7873a/src/tomato.ts#L897">tomato.ts:897</a></li>
+								</ul>
+							</aside>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="push" class="tsd-anchor"></a>
+					<h3>push</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">push<span class="tsd-signature-symbol">(</span>cmd<span class="tsd-signature-symbol">: </span><a href="_tomato_.cmd.html" class="tsd-signature-type">Cmd</a><span class="tsd-signature-symbol"> | </span><a href="_tomato_.cmd.html" class="tsd-signature-type">Cmd</a><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/po-to/tomato/blob/9e7873a/src/tomato.ts#L835">tomato.ts:835</a></li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>cmd: <a href="_tomato_.cmd.html" class="tsd-signature-type">Cmd</a><span class="tsd-signature-symbol"> | </span><a href="_tomato_.cmd.html" class="tsd-signature-type">Cmd</a><span class="tsd-signature-symbol">[]</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 						</li>
 					</ul>
 				</section>
@@ -401,6 +519,29 @@
 						</li>
 					</ul>
 				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="to" class="tsd-anchor"></a>
+					<h3>to</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">to<span class="tsd-signature-symbol">(</span>n<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-symbol">[</span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">]</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/po-to/tomato/blob/9e7873a/src/tomato.ts#L863">tomato.ts:863</a></li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>n: <span class="tsd-signature-type">number</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-symbol">[</span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">]</span></h4>
+						</li>
+					</ul>
+				</section>
 			</section>
 		</div>
 		<div class="col-4 col-menu menu-sticky-wrap menu-highlight">
@@ -419,46 +560,67 @@
 				</ul>
 				<ul class="current">
 					<li class="current tsd-kind-class tsd-parent-kind-external-module">
-						<a href="_tomato_.taskcounter.html" class="tsd-kind-icon">Task<wbr>Counter</a>
+						<a href="_tomato_.cmdqueue.html" class="tsd-kind-icon">Cmd<wbr>Queue</a>
 						<ul>
 							<li class=" tsd-kind-constructor tsd-parent-kind-class tsd-is-overwrite">
-								<a href="_tomato_.taskcounter.html#constructor" class="tsd-kind-icon">constructor</a>
+								<a href="_tomato_.cmdqueue.html#constructor" class="tsd-kind-icon">constructor</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited tsd-is-protected">
-								<a href="_tomato_.taskcounter.html#_handlers" class="tsd-kind-icon">_handlers</a>
+								<a href="_tomato_.cmdqueue.html#_handlers" class="tsd-kind-icon">_handlers</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-private">
-								<a href="_tomato_.taskcounter.html#_timer" class="tsd-kind-icon">_timer</a>
+								<a href="_tomato_.cmdqueue.html#cache" class="tsd-kind-icon">cache</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-private">
+								<a href="_tomato_.cmdqueue.html#cur" class="tsd-kind-icon">cur</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class">
-								<a href="_tomato_.taskcounter.html#defersecond" class="tsd-kind-icon">defer<wbr>Second</a>
+								<a href="_tomato_.cmdqueue.html#curitem" class="tsd-kind-icon">cur<wbr>Item</a>
 							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-class">
-								<a href="_tomato_.taskcounter.html#list" class="tsd-kind-icon">list</a>
+							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-private">
+								<a href="_tomato_.cmdqueue.html#goto" class="tsd-kind-icon">goto</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-private">
+								<a href="_tomato_.cmdqueue.html#history" class="tsd-kind-icon">history</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-private">
+								<a href="_tomato_.cmdqueue.html#historymax" class="tsd-kind-icon">history<wbr>Max</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-private">
+								<a href="_tomato_.cmdqueue.html#isuri" class="tsd-kind-icon">is<wbr>Uri</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-inherited">
-								<a href="_tomato_.taskcounter.html#parent" class="tsd-kind-icon">parent</a>
+								<a href="_tomato_.cmdqueue.html#parent" class="tsd-kind-icon">parent</a>
 							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-class">
-								<a href="_tomato_.taskcounter.html#state" class="tsd-kind-icon">state</a>
-							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-private">
-								<a href="_tomato_.taskcounter.html#_completeitem" class="tsd-kind-icon">_complete<wbr>Item</a>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
+								<a href="_tomato_.cmdqueue.html#addlistener" class="tsd-kind-icon">add<wbr>Listener</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
-								<a href="_tomato_.taskcounter.html#additem" class="tsd-kind-icon">add<wbr>Item</a>
+								<a href="_tomato_.cmdqueue.html#cancel" class="tsd-kind-icon">cancel</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-								<a href="_tomato_.taskcounter.html#addlistener" class="tsd-kind-icon">add<wbr>Listener</a>
+								<a href="_tomato_.cmdqueue.html#dispatch" class="tsd-kind-icon">dispatch</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="_tomato_.cmdqueue.html#empty" class="tsd-kind-icon">empty</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="_tomato_.cmdqueue.html#go" class="tsd-kind-icon">go</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-private">
+								<a href="_tomato_.cmdqueue.html#next" class="tsd-kind-icon">next</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="_tomato_.cmdqueue.html#push" class="tsd-kind-icon">push</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-								<a href="_tomato_.taskcounter.html#dispatch" class="tsd-kind-icon">dispatch</a>
+								<a href="_tomato_.cmdqueue.html#removelistener" class="tsd-kind-icon">remove<wbr>Listener</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-								<a href="_tomato_.taskcounter.html#removelistener" class="tsd-kind-icon">remove<wbr>Listener</a>
+								<a href="_tomato_.cmdqueue.html#setparent" class="tsd-kind-icon">set<wbr>Parent</a>
 							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-inherited">
-								<a href="_tomato_.taskcounter.html#setparent" class="tsd-kind-icon">set<wbr>Parent</a>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="_tomato_.cmdqueue.html#to" class="tsd-kind-icon">to</a>
 							</li>
 						</ul>
 					</li>

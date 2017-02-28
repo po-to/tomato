@@ -452,8 +452,7 @@ define(["require", "exports"], function (require, exports) {
                 headerEffect: undefined,
                 footerEffect: undefined,
                 asideEffect: undefined,
-                bodyEffect: undefined,
-                rootUriCmd: undefined
+                bodyEffect: undefined
             };
             _this.dialog = els.dialog;
             _this.mask = els.mask;
@@ -782,7 +781,7 @@ define(["require", "exports"], function (require, exports) {
     exports.Dialog = Dialog;
     var Application = (function (_super) {
         __extends(Application, _super);
-        function Application(els, config) {
+        function Application(els, config, rootUriCmd) {
             var _this = _super.call(this, els, config) || this;
             _this.initTime = Date.now();
             _this._setZIndex(0);
@@ -797,8 +796,8 @@ define(["require", "exports"], function (require, exports) {
             }).addListener(exports.TaskCountEvent.Free, function (e) {
                 _this.mask.removeClass("pt-busy");
             });
-            if (config && config.rootUriCmd) {
-                _this._initHistory(_this.initTime, config.rootUriCmd);
+            if (rootUriCmd) {
+                _this._initHistory(_this.initTime, rootUriCmd);
             }
             return _this;
         }

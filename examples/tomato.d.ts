@@ -168,7 +168,6 @@ export interface DialogConfig {
     footerEffect: string | undefined;
     asideEffect: string | undefined;
     bodyEffect: string | undefined;
-    rootUriCmd?: Cmd | undefined;
 }
 export interface DialogConfigOptions {
     className?: string;
@@ -193,10 +192,8 @@ export interface DialogConfigOptions {
     footerEffect?: string;
     asideEffect?: string;
     bodyEffect?: string;
-    rootUriCmd?: Cmd;
 }
 export declare abstract class Dialog extends VPresenter {
-    readonly history: History;
     readonly parent: Dialog | undefined;
     readonly view: LayerView;
     readonly state: DialogState;
@@ -258,7 +255,6 @@ export interface WholeVPresenter extends VPresenter {
     getAside(): View | null;
 }
 export declare class Application extends Dialog {
-    initTime: number;
     constructor(els: {
         view: LayerView;
         dialog: View;
@@ -268,16 +264,44 @@ export declare class Application extends Dialog {
         footer?: View;
         aside?: View;
     }, config?: DialogConfigOptions);
-    private _initHistory(initTime, rootUriCmd);
     close(): boolean;
     focus(checked?: boolean): boolean;
 }
 declare let application: Application;
+export declare class CmdQueue extends PDispatcher {
+    private historyMax;
+    private isUri;
+    private history;
+    private cache;
+    private cur;
+    private goto;
+    curItem?: {
+        cmd: Cmd;
+        method: string;
+        callback: () => void;
+    };
+    constructor(historyMax: number, isUri?: boolean, parent?: PDispatcher | undefined);
+    push(cmd: Cmd | Cmd[]): void;
+    empty(): void;
+    cancel(): void;
+    to(n: number): [number, number];
+    go(n: number): false | undefined;
+    private next();
+}
+export declare class ViewHistory {
+    uriQueue: CmdQueue;
+    actQueue: CmdQueue;
+    uriCache: Cmd[];
+    actCache: Cmd[];
+    constructor(uriMax: number, actMax: number);
+    uriPush(cmd: Cmd): void;
+    actPush(cmd: Cmd): void;
+    go(n: number): void;
+    uriGo(n: number): void;
+    empty(): void;
+}
 export declare class Cmd extends PDispatcher {
-    readonly url: string;
-    readonly title: string;
-    readonly isUri: boolean;
-    constructor(url: string, title: string, isUri: boolean);
+    constructor();
     success(): void;
     failure(): void;
     execute(): void;
@@ -287,38 +311,10 @@ export declare class Cmd extends PDispatcher {
     undo(): void;
     abort_undo(): void;
 }
-export declare class History extends PDispatcher {
-    maxStep: number;
-    private _list;
-    private _cache;
-    private _curItem?;
-    private _cur;
-    private _goto;
-    private _first;
-    private _last;
-    constructor(maxStep?: number);
-    getLength(): number;
-    getCode(): number[];
-    private _pushState(code, url, isUri);
-    _syncHistory(change: {
-        move?: number;
-        moveTitle?: string;
-        push?: {
-            code: string;
-            url: string;
-            title: string;
-            isUri: boolean;
-        };
-    }, callback: () => void): void;
-    private _addHistoryItem(cmd);
-    getCmdByCode(code: string): Cmd | undefined;
-    go(n: number | string): void;
-    push(cmd: Cmd | Cmd[]): void;
-    added(cmd: Cmd): void;
-    private _executeGoto();
-    private _checkGoto(item);
-    next(): void;
-}
+export declare let history: {
+    push: (url: string) => void;
+    init: () => void;
+};
 export declare function initHistory(): void;
 export declare function setConfig(data: {
     namespace?: string;

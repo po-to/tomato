@@ -12,6 +12,7 @@ var merge = require("merge2");
 var typedoc = require("gulp-typedoc");
 var rename = require("gulp-rename");
 var uglify = require('gulp-uglify');
+var connect = require('gulp-connect');
 
 
 
@@ -47,6 +48,13 @@ gulp.task("tscdoc", function () {
         }))
 });
 
+gulp.task('examples', function () {
+    connect.server({
+        port: "3333", 
+        root: ["./examples/"],
+        livereload: false
+    });
+});
 
 gulp.task('bulid', function (callback) { runSequence(['tsc', 'tscdoc'] , callback) });
 
