@@ -1,8 +1,3 @@
-/*!
- * Copyright po-to.org All Rights Reserved.
- * https://github.com/po-to/
- * Licensed under the MIT license
- */
 var __extends = (this && this.__extends) || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
     function __() { this.constructor = d; }
@@ -10,6 +5,43 @@ var __extends = (this && this.__extends) || function (d, b) {
 };
 define(["require", "exports"], function (require, exports) {
     "use strict";
+    exports.IViewSourceNamespace = "com.po-to/IViewSource";
+    function isIViewSource(data) {
+        return data['namespace'] == exports.IViewSourceNamespace;
+    }
+    exports.isIViewSource = isIViewSource;
+    function findInArray(arr, fun) {
+        for (var _i = 0, arr_1 = arr; _i < arr_1.length; _i++) {
+            var item = arr_1[_i];
+            if (fun(item)) {
+                return item;
+            }
+        }
+        return undefined;
+    }
+    function findIndexInArray(arr, fun) {
+        for (var i = 0, k = arr.length; i < k; i++) {
+            if (fun(arr[i])) {
+                return i;
+            }
+        }
+        return -1;
+    }
+    function assignObject(target) {
+        var args = [];
+        for (var _i = 1; _i < arguments.length; _i++) {
+            args[_i - 1] = arguments[_i];
+        }
+        for (var _a = 0, args_1 = args; _a < args_1.length; _a++) {
+            var item = args_1[_a];
+            for (var key in item) {
+                if (item.hasOwnProperty(key)) {
+                    target[key] = item[key];
+                }
+            }
+        }
+        return target;
+    }
     var autoID = 0;
     var namespace = 'po-to/tomato';
     exports.namespace = namespace;
@@ -48,10 +80,6 @@ define(["require", "exports"], function (require, exports) {
             this.data = data;
             this.bubbling = bubbling;
         }
-        PEvent.prototype._setTarget = function (target) {
-            this.target = target;
-            return this;
-        };
         return PEvent;
     }());
     exports.PEvent = PEvent;
@@ -59,7 +87,7 @@ define(["require", "exports"], function (require, exports) {
         __extends(PError, _super);
         function PError(name, note, data) {
             if (note === void 0) { note = "tomato.PError"; }
-            var _this = _super.call(this, name) || this;
+            var _this = _super.call(this, name + note) || this;
             _this.name = name;
             _this.note = note;
             _this.data = data;
@@ -72,7 +100,13 @@ define(["require", "exports"], function (require, exports) {
     }(Error));
     exports.PError = PError;
     function emptyObject(obj) {
-        Object.keys(obj).forEach(function (key) {
+        var arr = [];
+        for (var key in obj) {
+            if (obj.hasOwnProperty(key)) {
+                arr.push(key);
+            }
+        }
+        arr.forEach(function (key) {
             delete obj[key];
         });
         return obj;
@@ -116,7 +150,7 @@ define(["require", "exports"], function (require, exports) {
         };
         PDispatcher.prototype.dispatch = function (e) {
             if (!e.target) {
-                e._setTarget(this);
+                e.target = this;
             }
             var dictionary = this._handlers[e.name];
             if (dictionary) {
@@ -154,7 +188,7 @@ define(["require", "exports"], function (require, exports) {
         TaskCounter.prototype.addItem = function (promise, note) {
             var _this = this;
             if (note === void 0) { note = ''; }
-            if (!this.list.find(function (item) { return item.promise === promise; })) {
+            if (!this.list.some(function (item) { return item.promise === promise; })) {
                 this.list.push({ promise: promise, note: note });
                 promise.then(function (value) { return _this._completeItem(promise); }, function (reason) { return _this._completeItem(promise); });
                 this.dispatch(new PEvent(exports.TaskCountEvent.Added));
@@ -171,7 +205,7 @@ define(["require", "exports"], function (require, exports) {
             return promise;
         };
         TaskCounter.prototype._completeItem = function (promise) {
-            var i = this.list.findIndex(function (item) { return item.promise === promise; });
+            var i = findIndexInArray(this.list, function (item) { return item.promise === promise; });
             if (i > -1) {
                 this.list.splice(i, 1);
                 this.dispatch(new PEvent(exports.TaskCountEvent.Completed));
@@ -193,6 +227,9 @@ define(["require", "exports"], function (require, exports) {
     exports.TaskCounter = TaskCounter;
     var taskCounter = new TaskCounter(3);
     exports.taskCounter = taskCounter;
+    function isVPView(data) {
+        return (typeof data.getVPID == "function") && (typeof data.getVPCON == "function") && (typeof data.setVPID == "function") && (typeof data.getSUBS == "function") && (typeof data.removeChild == "function") && (typeof data.appendChild == "function") && (typeof data.removeClass == "function") && (typeof data.addClass == "function");
+    }
     var createVPView = function (html) {
         return {};
     };
@@ -208,7 +245,7 @@ define(["require", "exports"], function (require, exports) {
             return typeof (this['getHeader']) == 'function' && typeof (this['getFooter']) == 'function' && typeof (this['getAside']) == 'function';
         };
         VPresenter.prototype.init = function (subs) {
-            return null;
+            return this;
         };
         VPresenter.prototype._allowInstallTo = function (parent) {
             return true;
@@ -311,7 +348,7 @@ define(["require", "exports"], function (require, exports) {
         };
         VPresenter.prototype.destroy = function () {
             if (this.vpid) {
-                delete VPresenterStore[this.vpid];
+                delete VPresenterStore[this.vpid.substr(0, this.vpid.indexOf("?")).replace(/\/+$/, "")];
             }
         };
         VPresenter.prototype.getDialogClassName = function () {
@@ -321,94 +358,239 @@ define(["require", "exports"], function (require, exports) {
     }(PDispatcher));
     exports.VPresenter = VPresenter;
     var VPresenterStore = {};
-    function getVPresenter(data, successCallback, failueCallback) {
-        var id;
-        var view;
-        if (typeof data != "string") {
-            view = data;
-            id = data.getVPID();
+    function syncRequire(path) {
+        try {
+            return require(path);
         }
-        else {
-            view = null;
-            id = data;
+        catch (e) {
+            return new Promise(function (resolve, reject) {
+                require([path], function (data) {
+                    resolve(data);
+                }, function (error) {
+                    reject(error);
+                });
+            });
         }
-        var cacheData = VPresenterStore[id];
-        if (cacheData instanceof VPresenter) {
-            return cacheData;
-        }
-        else if (cacheData instanceof Promise) {
-            var success = successCallback || function (VP) { };
-            var failue = failueCallback || function (error) { };
-            cacheData.then(success, failue);
-            return cacheData;
-        }
-        var onError = function (error, reject) {
-            delete VPresenterStore[id];
-            failueCallback && failueCallback(error);
-            console.log(error);
-            reject(error);
-        };
-        var onSuccess = function (con, dom, resolve, reject) {
-            var vp = null;
-            try {
-                vp = new con(dom, undefined, id);
+    }
+    exports.getVPresenter = (function (VPresenterStore) {
+        function buildView(data) {
+            var vpview;
+            if (typeof data == "string") {
+                return createVPView(data);
             }
-            catch (e) {
-                onError(e, reject);
+            else if (isIViewSource(data)) {
+                return createVPView(data.source);
             }
-            if (vp) {
-                Promise.all(dom.getSUBS().map(function (dom) {
-                    var id = dom.getVPID();
-                    if (VPresenterStore[id]) {
-                        dom.setVPID(id + "#" + (++autoID));
-                    }
-                    return getVPresenter(dom);
-                })).then(function (list) {
-                    return vp && vp.init(list);
-                }).then(function () {
-                    successCallback && successCallback(vp);
-                    resolve(vp);
-                })['catch'](function (e) {
-                    onError(e, reject);
+            else {
+                return data;
+            }
+        }
+        function subVPresenter(subs, vp) {
+        }
+        function initVPresenter(con, view, url) {
+            var vp = new con(view, undefined, url);
+            var hasPromise = false;
+            var list = view.getSUBS().map(function (view) {
+                var arr = view.getVPID().split("?");
+                var id = arr[0].replace(/\/+$/, "");
+                var result = exports.getVPresenter(view);
+                if (!hasPromise && result instanceof Promise) {
+                    hasPromise = true;
+                }
+                return result;
+                // if (VPresenterStore[id]) {
+                //     arr[0] += "/" + (++autoID);
+                //     view.setVPID(arr.join("?"));
+                // }
+            });
+            if (!list.length || !hasPromise) {
+                return vp.init(list);
+            }
+            else {
+                return Promise.all(list).then(function (list) {
+                    return vp.init(list);
                 });
             }
-        };
-        var promise = new Promise(function (resolve, reject) {
-            var init = function (dom) {
-                var conPath = dom.getVPCON();
-                if (conPath) {
-                    require([conPath], function (con) {
-                        onSuccess(con, dom, resolve, reject);
-                    }, function (err) {
-                        onError(err, reject);
+        }
+        function buildVPresenter(view, url) {
+            if (!isVPView(view)) {
+                console.log(view);
+                throw "is not a VPView";
+            }
+            var conPath = view.getVPCON();
+            if (conPath) {
+                var result = syncRequire(conPath);
+                if (result instanceof Promise) {
+                    return result.then(function (data) {
+                        return initVPresenter(data, view, url);
                     });
                 }
                 else {
-                    onSuccess(VPresenter, dom, resolve, reject);
+                    return initVPresenter(result, view, url);
                 }
-            };
-            if (view) {
-                init(view);
             }
             else {
-                require([id], function (obj) {
-                    if (typeof obj == "string") {
-                        view = createVPView(obj);
-                    }
-                    else {
-                        view = obj;
-                    }
-                    init(view);
-                }, function (err) {
-                    onError(err, reject);
-                });
+                return initVPresenter(VPresenter, view, url);
             }
-        });
-        VPresenterStore[id] = promise;
-        taskCounter.addItem(promise, 'load:' + id);
-        return promise;
+        }
+        function returnResult(view, url) {
+            if (view) {
+                return buildVPresenter(view, url);
+            }
+            else if (url) {
+                var result = syncRequire(url);
+                if (result instanceof Promise) {
+                    return result.then(function (data) {
+                        return buildVPresenter(buildView(data), url);
+                    });
+                }
+                else {
+                    return buildVPresenter(buildView(result), url);
+                }
+            }
+            else {
+                throw 'not found view and url !';
+            }
+        }
+        return function (data) {
+            var url;
+            var id;
+            var view;
+            if (typeof data != "string") {
+                view = data;
+                id = data.getVPID();
+            }
+            else {
+                view = null;
+                id = data;
+            }
+            url = id;
+            id = id.substr(0, id.indexOf("?")).replace(/\/+$/, "");
+            var cacheData = VPresenterStore[id];
+            if (cacheData instanceof VPresenter) {
+                return cacheData;
+            }
+            else if (cacheData instanceof Promise) {
+                return cacheData;
+            }
+            else {
+                var result = returnResult(view, url);
+                VPresenterStore[id] = result;
+                if (result instanceof Promise) {
+                    taskCounter.addItem(result, 'load:' + url);
+                    result['catch'](function (error) {
+                        delete VPresenterStore[id];
+                        console.log(url + ":" + error);
+                    });
+                }
+                return result;
+            }
+        };
+    })(VPresenterStore);
+    function syncGetVPresenter(data) {
+        return this.getVPresenter(data);
     }
-    exports.getVPresenter = getVPresenter;
+    exports.syncGetVPresenter = syncGetVPresenter;
+    function asyncGetVPresenter(data) {
+        var result = this.getVPresenter(data);
+        if (result instanceof Promise) {
+            return result;
+        }
+        else {
+            return Promise.resolve(result);
+        }
+    }
+    exports.asyncGetVPresenter = asyncGetVPresenter;
+    // export function getVPresenter<T>(data: string | VPView, successCallback?: (vp: T) => void, failueCallback?: (error: Error) => void): T | Promise<T> {
+    //     let url: string;
+    //     let id: string;
+    //     let view: VPView | null;
+    //     if (typeof data != "string") {
+    //         view = data;
+    //         id = data.getVPID();
+    //     } else {
+    //         view = null;
+    //         id = data;
+    //     }
+    //     url = id;
+    //     id = id.substr(0, id.indexOf("?")).replace(/\/+$/, "");
+    //     let cacheData: Promise<T> | T | null = VPresenterStore[id] as any;
+    //     if (cacheData instanceof VPresenter) {
+    //         return cacheData as T;
+    //     } else if (cacheData instanceof Promise) {
+    //         let success: (vp: any) => void = successCallback || function (VP: any) { };
+    //         let failue: (error: Error) => void = failueCallback || function (error: Error) { };
+    //         cacheData.then(success, failue);
+    //         return cacheData;
+    //     }
+    //     let onError = function (error: Error, reject: (error: Error) => void) {
+    //         delete VPresenterStore[id];
+    //         failueCallback && failueCallback(error);
+    //         console.log(error);
+    //         reject(error);
+    //     }
+    //     let onSuccess = function (con: Function, dom: VPView, resolve: (vp: T) => void, reject: (error: Error) => void) {
+    //         let vp: VPresenter | null = null;
+    //         try {
+    //             vp = new (con as any)(dom, undefined, url);
+    //         } catch (e) {
+    //             onError(e, reject);
+    //         }
+    //         if (vp) {
+    //             Promise.all(dom.getSUBS().map(function (dom) {
+    //                 let arr = dom.getVPID().split("?");
+    //                 let id = arr[0].replace(/\/+$/, "");
+    //                 if (VPresenterStore[id]) {
+    //                     arr[0] += "/" + (++autoID);
+    //                     dom.setVPID(arr.join("?"));
+    //                 }
+    //                 return getVPresenter(dom);
+    //             })).then(
+    //                 function (list) {
+    //                     return vp && vp.init(list as any);
+    //                 }
+    //                 ).then(
+    //                 function () {
+    //                     successCallback && successCallback(vp as any);
+    //                     resolve(vp as any);
+    //                 }
+    //                 )['catch'](function (e) {
+    //                     onError(e, reject);
+    //                 })
+    //         }
+    //     }
+    //     let promise = new Promise<T>(function (resolve, reject) {
+    //         let init = function (dom: VPView) {
+    //             let conPath = dom.getVPCON();
+    //             if (conPath) {
+    //                 require([conPath], function (con: Function) {
+    //                     onSuccess(con, dom, resolve, reject);
+    //                 }, function (err) {
+    //                     onError(err, reject);
+    //                 })
+    //             } else {
+    //                 onSuccess(VPresenter, dom, resolve, reject);
+    //             }
+    //         }
+    //         if (view) {
+    //             init(view);
+    //         } else {
+    //             require([url], function (obj: string | VPView) {
+    //                 if (typeof obj == "string") {
+    //                     view = createVPView(obj);
+    //                 } else {
+    //                     view = obj;
+    //                 }
+    //                 init(view);
+    //             }, function (err) {
+    //                 onError(err, reject);
+    //             })
+    //         }
+    //     });
+    //     VPresenterStore[id] = promise as any;
+    //     taskCounter.addItem(promise, 'load:' + url);
+    //     return promise;
+    // }
     var DialogState;
     (function (DialogState) {
         DialogState[DialogState["Focused"] = 0] = "Focused";
@@ -452,8 +634,7 @@ define(["require", "exports"], function (require, exports) {
                 headerEffect: undefined,
                 footerEffect: undefined,
                 asideEffect: undefined,
-                bodyEffect: undefined,
-                rootUriCmd: undefined
+                bodyEffect: undefined
             };
             _this.dialog = els.dialog;
             _this.mask = els.mask;
@@ -465,11 +646,17 @@ define(["require", "exports"], function (require, exports) {
             if (config) {
                 _this.setConfig(config);
             }
+            _this.history.addListener(exports.CmdEvent.Overflow, function (e) {
+                _this._onHistoryOverflow(e);
+            });
             return _this;
         }
+        Dialog.prototype._onHistoryOverflow = function (e) {
+            this.close();
+        };
         Dialog.prototype.setConfig = function (config) {
             var oldConfig = this.config;
-            this.config = Object.assign({}, this.config, config);
+            this.config = assignObject({}, this.config, config);
             this._afterConfigChange(oldConfig);
         };
         Dialog.prototype.getZIndex = function () {
@@ -577,6 +764,11 @@ define(["require", "exports"], function (require, exports) {
             }
             return true;
         };
+        Dialog.prototype.refresh = function () {
+            this.refreshSize();
+            this.refreshLayout();
+            this.refreshPosition();
+        };
         Dialog.prototype.focus = function (_checked, _parentCall) {
             /* 三种调用场景：1.由close()上文调用；2.当前为closed状态; 3.当前为blured状态 */
             //if (this.state == DialogState.Focused) { return false; }
@@ -610,9 +802,7 @@ define(["require", "exports"], function (require, exports) {
                 var curState = this.state;
                 this._setState(DialogState.Focused);
                 if (curState == DialogState.Closed) {
-                    this.refreshSize();
-                    this.refreshPosition();
-                    this.refreshLayout();
+                    this.refresh();
                 }
                 this._afterFocus();
                 if (!_parentCall) {
@@ -644,9 +834,7 @@ define(["require", "exports"], function (require, exports) {
             }
             this._setZIndex(-1);
             this._setState(DialogState.Closed);
-            this.refreshSize();
-            this.refreshPosition();
-            this.refreshLayout();
+            this.refresh();
             this._afterClose();
             this.dispatch(new PEvent(exports.DialogEvent.Closed));
             if (this.content) {
@@ -732,9 +920,7 @@ define(["require", "exports"], function (require, exports) {
                 }
                 if (this.state != DialogState.Closed) {
                     if (this.config.size.width == DialogSize.Content || this.config.size.height == DialogSize.Content) {
-                        this.refreshSize();
-                        this.refreshPosition();
-                        this.refreshLayout();
+                        this.refresh();
                     }
                     else {
                         this.refreshLayout();
@@ -782,7 +968,7 @@ define(["require", "exports"], function (require, exports) {
     exports.Dialog = Dialog;
     var Application = (function (_super) {
         __extends(Application, _super);
-        function Application(els, config) {
+        function Application(rootUri, els, config) {
             var _this = _super.call(this, els, config) || this;
             _this.initTime = Date.now();
             _this._setZIndex(0);
@@ -797,20 +983,20 @@ define(["require", "exports"], function (require, exports) {
             }).addListener(exports.TaskCountEvent.Free, function (e) {
                 _this.mask.removeClass("pt-busy");
             });
-            if (config && config.rootUriCmd) {
-                _this._initHistory(_this.initTime, config.rootUriCmd);
+            if (rootUri) {
+                _this._initHistory(_this.initTime, rootUri);
             }
             return _this;
         }
-        Application.prototype._initHistory = function (initTime, rootUriCmd) {
+        Application.prototype._initHistory = function (initTime, rootUri) {
             var supportState = window.history.pushState ? true : false;
             var _trigger;
             var history = this.history;
             function pushState(code, title, url, isUri) {
                 window.history.pushState(code, title, isUri ? url : "#" + encodeURI(url));
             }
-            function addState(code) {
-                window.history.replaceState(initTime + "." + code, document.title, window.location.href);
+            function addState(code, title, url) {
+                window.history.replaceState(initTime + "." + code, title || document.title, url || window.location.href);
             }
             history._syncHistory = function (change, callback) {
                 var execute = function () {
@@ -845,7 +1031,9 @@ define(["require", "exports"], function (require, exports) {
                             document.title = cmd.title;
                             _trigger = function () {
                                 document.title = title_1;
-                                setTimeout(function () { history.go(-n_1); }, 1); //异步触发
+                                setTimeout(function () {
+                                    getTopDialog().history.go(-n_1);
+                                }, 1); //异步触发
                             };
                             window.history.go(n_1);
                         }
@@ -885,8 +1073,9 @@ define(["require", "exports"], function (require, exports) {
                     console.log('hash', window.location.hash, e);
                 });
             }
-            history.added(rootUriCmd);
-            addState("1.0");
+            document.title = rootUri.title;
+            addState("1.0", rootUri.title, rootUri.url);
+            this.history.added(rootUri);
         };
         Application.prototype.close = function () {
             return false;
@@ -902,6 +1091,7 @@ define(["require", "exports"], function (require, exports) {
     var Cmd = (function (_super) {
         __extends(Cmd, _super);
         function Cmd(url, title, isUri) {
+            if (isUri === void 0) { isUri = false; }
             var _this = _super.call(this) || this;
             _this.url = url;
             _this.title = title;
@@ -915,19 +1105,15 @@ define(["require", "exports"], function (require, exports) {
             this.dispatch(new PEvent(exports.CmdEvent.ItemFailure, this, true));
         };
         Cmd.prototype.execute = function () {
-            console.log(this.url, 'execute');
+            console.log('execute()', this.url);
             this.success();
-        };
-        Cmd.prototype.abort_execute = function () {
         };
         Cmd.prototype.redo = function () {
-            console.log(this.url, 'redo');
+            console.log('redo()', this.url);
             this.success();
         };
-        Cmd.prototype.abort_redo = function () {
-        };
         Cmd.prototype.undo = function () {
-            console.log(this.url, 'undo');
+            console.log('undo()', this.url);
             this.success();
         };
         Cmd.prototype.abort_undo = function () {
@@ -935,6 +1121,22 @@ define(["require", "exports"], function (require, exports) {
         return Cmd;
     }(PDispatcher));
     exports.Cmd = Cmd;
+    var openDialogCmd = (function (_super) {
+        __extends(openDialogCmd, _super);
+        function openDialogCmd() {
+            return _super.call(this, 'dialog', document.title) || this;
+        }
+        openDialogCmd.prototype.execute = function () {
+            this.success();
+        };
+        openDialogCmd.prototype.redo = function () {
+            this.failure();
+        };
+        openDialogCmd.prototype.undo = function () {
+            this.success();
+        };
+        return openDialogCmd;
+    }(Cmd));
     function bindEventListener(tag, type, fun) {
         if (window.addEventListener) {
             tag.addEventListener(type, fun, false);
@@ -1014,7 +1216,7 @@ define(["require", "exports"], function (require, exports) {
             //此时_cur必定等于_goto，因为只有在_cur==_goto时才会执行新的命令
             var moveIndex = 0, moveTitle = "";
             if (this._cur.join('.') != this._first.join('.')) {
-                var del = this._list.splice(0, this._first[0] - this._cur[0] + this._first[0] - this._cur[1]);
+                var del = this._list.splice(0, this._first[0] - this._cur[0] + this._first[1] - this._cur[1]);
                 this._first = [this._cur[0], this._cur[1]];
             }
             if (cmd.isUri) {
@@ -1048,7 +1250,7 @@ define(["require", "exports"], function (require, exports) {
             return { move: moveIndex, moveTitle: moveTitle, push: { code: item.code, url: cmd.url, title: cmd.title, isUri: cmd.isUri } };
         };
         History.prototype.getCmdByCode = function (code) {
-            var item = this._list.find(function (item) {
+            var item = findInArray(this._list, function (item) {
                 return item.code == code;
             });
             return item ? item.cmd : undefined;
@@ -1133,6 +1335,9 @@ define(["require", "exports"], function (require, exports) {
                 var arr = item.split('.');
                 gotoCode = [parseInt(arr[0]), parseInt(arr[1])];
             }
+            if (this._cur.join(".") == this._last.join(".") && (gotoCode[0] < this._last[0] || gotoCode[1] < this._last[1])) {
+                return null;
+            }
             if (gotoCode[0] > this._first[0]) {
                 gotoCode[0] = this._first[0];
             }
@@ -1142,6 +1347,9 @@ define(["require", "exports"], function (require, exports) {
             if (gotoCode[0] == this._first[0]) {
                 if (gotoCode[1] > this._first[1]) {
                     gotoCode[1] = this._first[1];
+                }
+                else if (gotoCode[1] < this._last[1]) {
+                    gotoCode[1] = this._last[1];
                 }
             }
             else {
@@ -1169,11 +1377,17 @@ define(["require", "exports"], function (require, exports) {
                     item.execute();
                 }
                 else if (item) {
-                    this._goto = this._checkGoto(item);
-                    this.next();
+                    var arr = this._checkGoto(item);
+                    if (arr) {
+                        this._goto = arr;
+                        this.next();
+                    }
+                    else {
+                        this._cache = [];
+                        this.dispatch(new PEvent(exports.CmdEvent.Overflow));
+                    }
                 }
                 else {
-                    console.log("Complete", this._cur, this._goto, this._list);
                 }
             }
         };
@@ -1406,6 +1620,10 @@ define(["require", "exports"], function (require, exports) {
     var _topDialog;
     function setTopDialog(dialog) {
         if (_topDialog != dialog) {
+            if (_topDialog == application) {
+                application.history.push(new openDialogCmd());
+                application.history.go(-1);
+            }
             _topDialog && _topDialog.view.removeClass("pt-topDialog");
             _topDialog = dialog;
             _topDialog.view.addClass("pt-topDialog");

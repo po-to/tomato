@@ -3,9 +3,43 @@
  * https://github.com/po-to/
  * Licensed under the MIT license
  */
-
-declare var require: (deps: string[], succCallback: (data: any) => void, failCallback: (error: any) => void) => void;
+declare var require: (deps: string[]|string, succCallback?: (data: any) => void, failCallback?: (error: any) => void) => void;
 declare var define: (id: string, mod: any) => void;
+
+export interface IViewSource {
+    namespace: string;
+    source:string;
+}
+export const IViewSourceNamespace: string = "com.po-to/IViewSource";
+export function isIViewSource(data:Object):data is IViewSource{
+    return data['namespace'] == IViewSourceNamespace;
+}
+function findInArray<T>(arr:T[],fun:(item:T)=>boolean):T|undefined{
+    for(let item of arr){
+        if(fun(item)){
+            return item;
+        }
+    }
+    return undefined;
+}
+function findIndexInArray<T>(arr:T[],fun:(item:T)=>boolean):number{
+    for(let i=0,k=arr.length; i<k; i++){
+        if(fun(arr[i])){
+            return i;
+        }
+    }
+    return -1;
+}
+function assignObject<T>(target:T,...args):T{
+    for(let item of args){
+        for(let key in item){
+            if(item.hasOwnProperty(key)){
+                target[key] = item[key];
+            }
+        }
+    }
+    return target;
+}
 
 let autoID: number = 0;
 let namespace: string = 'po-to/tomato';
@@ -48,14 +82,11 @@ export class PEvent {
 
     constructor(public readonly name: string, public readonly data?: any, public bubbling: boolean = false) {
     }
-    _setTarget(target: PDispatcher): this {
-        (this as any).target = target;
-        return this;
-    }
+   
 }
 export class PError extends Error {
     constructor(public readonly name: string, public readonly note: string = "tomato.PError", public readonly data?: { file: string, line: string, detail: any }) {
-        super(name);
+        super(name+note);
     }
 
     getNamespace(): string {
@@ -63,7 +94,13 @@ export class PError extends Error {
     }
 }
 function emptyObject<T>(obj: any): T {
-    Object.keys(obj).forEach(function (key) {
+    let arr:string[] = [];
+    for(let key in obj){
+        if(obj.hasOwnProperty(key)){
+            arr.push(key);
+        }
+    }
+    arr.forEach(function (key) {
         delete obj[key];
     })
     return obj;
@@ -106,7 +143,7 @@ export class PDispatcher {
     }
     dispatch(e: PEvent): this {
         if (!e.target) {
-            e._setTarget(this);
+            (e as any).target = this;
         }
         let dictionary = this._handlers[e.name];
         if (dictionary) {
@@ -135,7 +172,7 @@ export class TaskCounter extends PDispatcher {
         super();
     }
     addItem(promise: Promise<any>, note: string = ''): Promise<any> {
-        if (!this.list.find((item) => item.promise === promise)) {
+        if (!this.list.some((item) => item.promise === promise)) {
             this.list.push({ promise: promise, note: note });
             promise.then(value => this._completeItem(promise), reason => this._completeItem(promise));
             this.dispatch(new PEvent(TaskCountEvent.Added));
@@ -152,7 +189,7 @@ export class TaskCounter extends PDispatcher {
         return promise;
     }
     private _completeItem(promise: Promise<any>): this {
-        let i = this.list.findIndex((item) => item.promise === promise);
+        let i = findIndexInArray(this.list,(item) => item.promise === promise);
         if (i > -1) {
             this.list.splice(i, 1);
             this.dispatch(new PEvent(TaskCountEvent.Completed));
@@ -185,21 +222,22 @@ export interface VPView extends View {
     setVPID(id: string): void;
     getSUBS(): VPView[];
 }
-
+function isVPView(data:any):data is VPView{
+    return (typeof data.getVPID == "function") && (typeof data.getVPCON == "function") && (typeof data.setVPID == "function")  && (typeof data.getSUBS == "function") && (typeof data.removeChild == "function") && (typeof data.appendChild == "function") && (typeof data.removeClass == "function") && (typeof data.addClass == "function")
+}
 let createVPView: (html: string) => VPView = function (html: string): VPView {
     return {} as VPView;
 };
-
 export class VPresenter extends PDispatcher {
     public readonly parent: VPresenter | undefined;
-    constructor(public readonly view: VPView, parent?: VPresenter, public readonly vpid?: string) {
+    constructor(public readonly view: VPView, parent?: VPresenter, public vpid?: string) {
         super(parent);
     }
-    isWholeVPresenter(): boolean {
+    isWholeVPresenter(): this is WholeVPresenter {
         return typeof (this['getHeader']) == 'function' && typeof (this['getFooter']) == 'function' && typeof (this['getAside']) == 'function';
     }
-    init(subs: VPresenter[]): Promise<this> | any {
-        return null;
+    init(subs: VPresenter[]): Promise<this> | this {
+        return this;
     }
     protected _allowInstallTo(parent: VPresenter): boolean {
         return true;
@@ -292,7 +330,7 @@ export class VPresenter extends PDispatcher {
     }
     destroy(): void {
         if (this.vpid) {
-            delete VPresenterStore[this.vpid];
+            delete VPresenterStore[this.vpid.substr(0, this.vpid.indexOf("?")).replace(/\/+$/, "")];
         }
     }
     getDialogClassName(): string {
@@ -302,93 +340,235 @@ export class VPresenter extends PDispatcher {
 
 let VPresenterStore: { [key: string]: VPresenter | Promise<VPresenter> } = {}
 
-export function getVPresenter<T>(data: string | VPView, successCallback?: (vp: T) => void, failueCallback?: (error: Error) => void): T | Promise<T> {
-    let id: string;
-    let view: VPView | null;
-    if (typeof data != "string") {
-        view = data;
-        id = data.getVPID();
-    } else {
-        view = null;
-        id = data;
+function syncRequire(path:string):any|Promise<any>{
+    try{
+        return require(path);
+    }catch(e){
+        return new Promise(function(resolve,reject){
+            require([path],function(data){
+                resolve(data);
+            },function(error){
+                reject(error);
+            });
+        })
     }
-    let cacheData: Promise<T> | T | null = VPresenterStore[id] as any;
-    if (cacheData instanceof VPresenter) {
-        return cacheData as T;
-    } else if (cacheData instanceof Promise) {
-        let success: (vp: any) => void = successCallback || function (VP: any) { };
-        let failue: (error: Error) => void = failueCallback || function (error: Error) { };
-        cacheData.then(success, failue);
-        return cacheData;
-    }
-    let onError = function (error: Error, reject: (error: Error) => void) {
-        delete VPresenterStore[id];
-        failueCallback && failueCallback(error);
-        console.log(error);
-        reject(error);
-    }
-    let onSuccess = function (con: Function, dom: VPView, resolve: (vp: T) => void, reject: (error: Error) => void) {
-        let vp: VPresenter | null = null;
-        try {
-            vp = new (con as any)(dom, undefined, id);
-        } catch (e) {
-            onError(e, reject);
-        }
-        if (vp) {
-            Promise.all(dom.getSUBS().map(function (dom) {
-                let id = dom.getVPID();
-                if (VPresenterStore[id]) {
-                    dom.setVPID(id + "#" + (++autoID));
-                }
-                return getVPresenter(dom);
-            })).then(
-                function (list) {
-                    return vp && vp.init(list as any);
-                }
-                ).then(
-                function () {
-                    successCallback && successCallback(vp as any);
-                    resolve(vp as any);
-                }
-                )['catch'](function (e) {
-                    onError(e, reject);
-                })
-        }
-    }
-
-    let promise = new Promise<T>(function (resolve, reject) {
-        let init = function (dom: VPView) {
-            let conPath = dom.getVPCON();
-            if (conPath) {
-                require([conPath], function (con: Function) {
-                    onSuccess(con, dom, resolve, reject);
-                }, function (err) {
-                    onError(err, reject);
-                })
-            } else {
-                onSuccess(VPresenter, dom, resolve, reject);
-            }
-        }
-        if (view) {
-            init(view);
-        } else {
-            require([id], function (obj: string | VPView) {
-                if (typeof obj == "string") {
-                    view = createVPView(obj);
-                } else {
-                    view = obj;
-                }
-                init(view);
-            }, function (err) {
-                onError(err, reject);
-            })
-        }
-
-    });
-    VPresenterStore[id] = promise as any;
-    taskCounter.addItem(promise, 'load:' + id);
-    return promise;
 }
+
+export let getVPresenter = (function(VPresenterStore){
+
+    function buildView(data:any):VPView{
+        let vpview:VPView;
+        if(typeof data == "string"){
+            return createVPView(data);
+        }else if(isIViewSource(data)){
+            return createVPView(data.source);
+        }else{
+            return data;
+        }
+    }
+    function subVPresenter(subs:VPresenter[],vp:VPresenter){
+
+    }
+    function initVPresenter(con: Function, view: VPView, url:string) : VPresenter | Promise<VPresenter> {
+        let vp: VPresenter = new (con as any)(view, undefined, url);
+        let hasPromise :boolean = false;
+        let list = view.getSUBS().map(function (view) {
+            let arr = view.getVPID().split("?");
+            let id = arr[0].replace(/\/+$/, "");
+            let result = getVPresenter(view);
+            if(!hasPromise && result instanceof Promise){
+                hasPromise = true;
+            }
+            return result;
+            // if (VPresenterStore[id]) {
+            //     arr[0] += "/" + (++autoID);
+            //     view.setVPID(arr.join("?"));
+            // }
+            
+        });
+        if(!list.length || !hasPromise){
+            return vp.init(list as any);
+        }else{
+            return Promise.all(list).then(
+                function (list) {
+                    return vp.init(list as any);
+                }
+            )
+        }
+    }
+    function buildVPresenter(view:VPView,url:string):VPresenter | Promise<VPresenter>{
+        if(!isVPView(view)){
+            console.log(view);
+            throw "is not a VPView";
+        }
+        let conPath = view.getVPCON();
+        if (conPath) {
+            let result = syncRequire(conPath);
+             if(result instanceof Promise){
+                return result.then(function(data){
+                    return initVPresenter(data,view,url);
+                })
+            }else{
+                return initVPresenter(result,view,url);
+            }
+        } else {
+            return initVPresenter(VPresenter,view,url);
+        }
+    }
+
+    function returnResult(view:VPView | null, url:string): VPresenter | Promise<VPresenter>{
+        if (view) {
+            return buildVPresenter(view,url);
+        } else if(url){
+            let result = syncRequire(url);
+            if(result instanceof Promise){
+                return result.then(function(data){
+                    return buildVPresenter(buildView(data),url);
+                })
+            }else{
+                return buildVPresenter(buildView(result),url);
+            }
+        }else{
+            throw 'not found view and url !'
+        }
+    }
+    return function(data: string | VPView): VPresenter | Promise<VPresenter>{
+        let url: string;
+        let id: string;
+        let view: VPView | null;
+        if (typeof data != "string") {
+            view = data;
+            id = data.getVPID();
+        } else {
+            view = null;
+            id = data;
+        }
+        url = id;
+        id = id.substr(0, id.indexOf("?")).replace(/\/+$/, "");
+        let cacheData: Promise<VPresenter> | VPresenter | null = VPresenterStore[id];
+        if (cacheData instanceof VPresenter) {
+            return cacheData;
+        } else if (cacheData instanceof Promise) {
+            return cacheData;
+        }else{
+            let result = returnResult(view, url);
+            VPresenterStore[id] = result;
+            if(result instanceof Promise){
+                taskCounter.addItem(result, 'load:' + url);
+                result['catch'](function(error){
+                    delete VPresenterStore[id];
+                    console.log(url+ ":" +error);
+                })
+            }
+            return result;
+        }
+    }
+
+})(VPresenterStore)
+
+export function syncGetVPresenter<T>(data: string | VPView):T{
+    return this.getVPresenter(data);
+}
+export function asyncGetVPresenter<T>(data: string | VPView):Promise<T>{
+    let result = this.getVPresenter(data);
+    if(result instanceof Promise){
+        return result;
+    }else{
+        return Promise.resolve(result);
+    }
+}
+// export function getVPresenter<T>(data: string | VPView, successCallback?: (vp: T) => void, failueCallback?: (error: Error) => void): T | Promise<T> {
+//     let url: string;
+//     let id: string;
+//     let view: VPView | null;
+//     if (typeof data != "string") {
+//         view = data;
+//         id = data.getVPID();
+//     } else {
+//         view = null;
+//         id = data;
+//     }
+//     url = id;
+//     id = id.substr(0, id.indexOf("?")).replace(/\/+$/, "");
+//     let cacheData: Promise<T> | T | null = VPresenterStore[id] as any;
+//     if (cacheData instanceof VPresenter) {
+//         return cacheData as T;
+//     } else if (cacheData instanceof Promise) {
+//         let success: (vp: any) => void = successCallback || function (VP: any) { };
+//         let failue: (error: Error) => void = failueCallback || function (error: Error) { };
+//         cacheData.then(success, failue);
+//         return cacheData;
+//     }
+//     let onError = function (error: Error, reject: (error: Error) => void) {
+//         delete VPresenterStore[id];
+//         failueCallback && failueCallback(error);
+//         console.log(error);
+//         reject(error);
+//     }
+//     let onSuccess = function (con: Function, dom: VPView, resolve: (vp: T) => void, reject: (error: Error) => void) {
+//         let vp: VPresenter | null = null;
+//         try {
+//             vp = new (con as any)(dom, undefined, url);
+//         } catch (e) {
+//             onError(e, reject);
+//         }
+//         if (vp) {
+//             Promise.all(dom.getSUBS().map(function (dom) {
+//                 let arr = dom.getVPID().split("?");
+//                 let id = arr[0].replace(/\/+$/, "");
+//                 if (VPresenterStore[id]) {
+//                     arr[0] += "/" + (++autoID);
+//                     dom.setVPID(arr.join("?"));
+//                 }
+//                 return getVPresenter(dom);
+//             })).then(
+//                 function (list) {
+//                     return vp && vp.init(list as any);
+//                 }
+//                 ).then(
+//                 function () {
+//                     successCallback && successCallback(vp as any);
+//                     resolve(vp as any);
+//                 }
+//                 )['catch'](function (e) {
+//                     onError(e, reject);
+//                 })
+//         }
+//     }
+
+//     let promise = new Promise<T>(function (resolve, reject) {
+//         let init = function (dom: VPView) {
+//             let conPath = dom.getVPCON();
+//             if (conPath) {
+//                 require([conPath], function (con: Function) {
+//                     onSuccess(con, dom, resolve, reject);
+//                 }, function (err) {
+//                     onError(err, reject);
+//                 })
+//             } else {
+//                 onSuccess(VPresenter, dom, resolve, reject);
+//             }
+//         }
+//         if (view) {
+//             init(view);
+//         } else {
+//             require([url], function (obj: string | VPView) {
+//                 if (typeof obj == "string") {
+//                     view = createVPView(obj);
+//                 } else {
+//                     view = obj;
+//                 }
+//                 init(view);
+//             }, function (err) {
+//                 onError(err, reject);
+//             })
+//         }
+
+//     });
+//     VPresenterStore[id] = promise as any;
+//     taskCounter.addItem(promise, 'load:' + url);
+//     return promise;
+// }
 
 export enum DialogState { Focused, Blured, Closed };
 export enum DialogPosition { Left, Center, Right, Top, Middle, Bottom }
@@ -413,7 +593,6 @@ export interface DialogConfig {
     footerEffect: string | undefined;
     asideEffect: string | undefined;
     bodyEffect: string | undefined;
-    rootUriCmd?: Cmd | undefined;
 }
 export interface DialogConfigOptions {
     className?: string;
@@ -429,8 +608,8 @@ export interface DialogConfigOptions {
     footerEffect?: string;
     asideEffect?: string;
     bodyEffect?: string;
-    rootUriCmd?: Cmd;
 }
+
 export abstract class Dialog extends VPresenter {
     public readonly history = new History();
     public readonly parent: Dialog | undefined;
@@ -464,8 +643,7 @@ export abstract class Dialog extends VPresenter {
         headerEffect: undefined,
         footerEffect: undefined,
         asideEffect: undefined,
-        bodyEffect: undefined,
-        rootUriCmd: undefined
+        bodyEffect: undefined
     }
 
     constructor(els: { view: LayerView, dialog: View, mask: View, body?: View, header?: View, footer?: View, aside?: View }, config?: DialogConfigOptions) {
@@ -480,10 +658,16 @@ export abstract class Dialog extends VPresenter {
         if (config) {
             this.setConfig(config);
         }
+        this.history.addListener(CmdEvent.Overflow, (e) => {
+            this._onHistoryOverflow(e);
+        })
+    }
+    protected _onHistoryOverflow(e) {
+        this.close();
     }
     setConfig(config: DialogConfigOptions) {
         let oldConfig = this.config;
-        (this as any).config = Object.assign({}, this.config, config);
+        (this as any).config = assignObject({}, this.config, config);
         this._afterConfigChange(oldConfig);
     }
     getZIndex(): number {
@@ -582,6 +766,11 @@ export abstract class Dialog extends VPresenter {
         }
         return true;
     }
+    refresh() {
+        this.refreshSize();
+        this.refreshLayout();
+        this.refreshPosition();
+    }
     focus(_checked?: boolean, _parentCall?: boolean): boolean {
         /* 三种调用场景：1.由close()上文调用；2.当前为closed状态; 3.当前为blured状态 */
         //if (this.state == DialogState.Focused) { return false; }
@@ -614,9 +803,7 @@ export abstract class Dialog extends VPresenter {
             let curState = this.state;
             this._setState(DialogState.Focused);
             if (curState == DialogState.Closed) {
-                this.refreshSize();
-                this.refreshPosition();
-                this.refreshLayout();
+                this.refresh();
             }
             this._afterFocus();
             if (!_parentCall) {
@@ -646,9 +833,7 @@ export abstract class Dialog extends VPresenter {
         }
         this._setZIndex(-1);
         this._setState(DialogState.Closed);
-        this.refreshSize();
-        this.refreshPosition();
-        this.refreshLayout();
+        this.refresh();
         this._afterClose();
         this.dispatch(new PEvent(DialogEvent.Closed));
         if (this.content) {
@@ -710,24 +895,22 @@ export abstract class Dialog extends VPresenter {
                 this.dialog.appendChild(member.view);
             }
             if (member.isWholeVPresenter()) {
-                this._contentHeader = (member as WholeVPresenter).getHeader();
+                this._contentHeader = member.getHeader();
                 if (this._contentHeader && this.header) {
                     this.header.appendChild(this._contentHeader);
                 }
-                this._contentFooter = (member as WholeVPresenter).getFooter();
+                this._contentFooter = member.getFooter();
                 if (this._contentFooter && this.footer) {
                     this.footer.appendChild(this._contentFooter);
                 }
-                this._contentAside = (member as WholeVPresenter).getAside();
+                this._contentAside = member.getAside();
                 if (this._contentAside && this.aside) {
                     this.aside.appendChild(this._contentAside);
                 }
             }
             if (this.state != DialogState.Closed) {
                 if (this.config.size.width == DialogSize.Content || this.config.size.height == DialogSize.Content) {
-                    this.refreshSize();
-                    this.refreshPosition();
-                    this.refreshLayout();
+                    this.refresh();
                 } else {
                     this.refreshLayout();
                 }
@@ -781,7 +964,7 @@ export interface WholeVPresenter extends VPresenter {
 export class Application extends Dialog {
 
     public initTime = Date.now();
-    constructor(els: { view: LayerView, dialog: View, mask: View, body?: View, header?: View, footer?: View, aside?: View }, config?: DialogConfigOptions) {
+    constructor(rootUri: Cmd | null, els: { view: LayerView, dialog: View, mask: View, body?: View, header?: View, footer?: View, aside?: View }, config?: DialogConfigOptions) {
         super(els, config);
         this._setZIndex(0);
         this._setState(DialogState.Focused);
@@ -795,90 +978,93 @@ export class Application extends Dialog {
         }).addListener(TaskCountEvent.Free, e => {
             this.mask.removeClass("pt-busy");
         })
-        if(config && config.rootUriCmd){
-            this._initHistory(this.initTime,config.rootUriCmd);
+        if (rootUri) {
+            this._initHistory(this.initTime, rootUri);
         }
     }
-    private _initHistory(initTime,rootUriCmd){
-        let supportState = window.history.pushState?true:false;
-        let _trigger:boolean|(()=>void);
+    private _initHistory(initTime: number, rootUri: Cmd) {
+        let supportState = window.history.pushState ? true : false;
+        let _trigger: boolean | (() => void);
         let history = this.history;
-       
-        function pushState(code:string,title:string,url:string,isUri:boolean){
-            window.history.pushState(code,title,isUri?url:"#"+encodeURI(url));
+
+        function pushState(code: string, title: string, url: string, isUri: boolean) {
+            window.history.pushState(code, title, isUri ? url : "#" + encodeURI(url));
         }
-        function addState(code:string){
-            window.history.replaceState(initTime+"."+code, document.title, window.location.href);
+        function addState(code: string, title?: string, url?: string) {
+            window.history.replaceState(initTime + "." + code, title || document.title, url || window.location.href);
         }
-        history._syncHistory = function(change:{move?:number, moveTitle?:string, push?:{ code: string, url: string, title: string, isUri: boolean }},callback:()=>void){
-            let execute = function(){
-                if(change.push){
-                    pushState(initTime+ '.' + change.push.code,change.push.title,change.push.url,change.push.isUri);
+        history._syncHistory = function (change: { move?: number, moveTitle?: string, push?: { code: string, url: string, title: string, isUri: boolean } }, callback: () => void) {
+            let execute = function () {
+                if (change.push) {
+                    pushState(initTime + '.' + change.push.code, change.push.title, change.push.url, change.push.isUri);
                     document.title = change.push.title;
                 }
-                setTimeout(callback,1);
+                setTimeout(callback, 1);
             }
-            if(change.move){
-                _trigger = function(){
-                    document.title = change.moveTitle||'';
+            if (change.move) {
+                _trigger = function () {
+                    document.title = change.moveTitle || '';
                     execute();
                 };
                 window.history.go(change.move);
-            }else{
+            } else {
                 execute();
             }
         }
-        function handlerHistory(str:string){
-            let [flag,uri,act] = str.split(".").map(function(val){
+        function handlerHistory(str: string) {
+            let [flag, uri, act] = str.split(".").map(function (val) {
                 return parseInt(val);
             });
-            if(flag==initTime){
-                let cmd = history.getCmdByCode(uri+'.'+act);
-                if(cmd){
-                    let [curUri,curAct] = history.getCode();
-                    let n = curUri-uri+curAct-act;
-                    if(n!=0){
+            if (flag == initTime) {
+                let cmd = history.getCmdByCode(uri + '.' + act);
+                if (cmd) {
+                    let [curUri, curAct] = history.getCode();
+                    let n = curUri - uri + curAct - act;
+                    if (n != 0) {
                         let title = document.title;
                         document.title = cmd.title;
-                        _trigger = function(){
+                        _trigger = function () {
                             document.title = title;
-                            setTimeout(function(){history.go(-n);},1);//异步触发
+                            setTimeout(function () {
+                                getTopDialog().history.go(-n);
+                            }, 1);//异步触发
                         };
                         window.history.go(n);
                     }
-                }else{
+                } else {
                     window.location.reload();
                 }
-            }else{
+            } else {
                 window.location.reload();
             }
         }
-        function handlerChange(e:{state:string}){
-            if(_trigger){
-                if(typeof _trigger=="function"){
+        function handlerChange(e: { state: string }) {
+            if (_trigger) {
+                if (typeof _trigger == "function") {
                     _trigger();
                 }
                 _trigger = false;
-            }else{
-                if(history.getLength()){
-                    if(e.state){
+            } else {
+                if (history.getLength()) {
+                    if (e.state) {
                         handlerHistory(e.state);
-                    }else{
-                        history.added(new Cmd(window.location.href,document.title,false));
+                    } else {
+                        history.added(new Cmd(window.location.href, document.title, false));
                         addState(history.getCode().join("."));
                     }
                 }
             }
         }
-        if(supportState){
+        if (supportState) {
             bindEventListener(window, 'popstate', handlerChange);
-        }else{
-            bindEventListener(window, 'hashchange', function(e){
-                console.log('hash',window.location.hash,e);
+        } else {
+            bindEventListener(window, 'hashchange', function (e) {
+                console.log('hash', window.location.hash, e);
             });
         }
-        history.added(rootUriCmd);
-        addState("1.0");
+        document.title = rootUri.title;
+        addState("1.0", rootUri.title, rootUri.url);
+        this.history.added(rootUri);
     }
     close(): boolean {
         return false;
@@ -892,7 +1078,7 @@ export class Application extends Dialog {
 let application: Application = {} as any;
 
 export class Cmd extends PDispatcher {
-    constructor(public readonly url: string, public readonly title: string, public readonly isUri: boolean) {
+    constructor(public readonly url: string, public readonly title: string, public readonly isUri: boolean = false) {
         super();
     }
     success() {
@@ -902,22 +1088,33 @@ export class Cmd extends PDispatcher {
         this.dispatch(new PEvent(CmdEvent.ItemFailure, this, true))
     }
     execute() {
-        console.log(this.url, 'execute');
+        console.log('execute()', this.url);
         this.success();
-    }
-    abort_execute() {
     }
     redo() {
-        console.log(this.url, 'redo');
+        console.log('redo()', this.url);
         this.success();
     }
-    abort_redo() {
-    }
     undo() {
-        console.log(this.url, 'undo');
+        console.log('undo()', this.url);
         this.success();
     }
     abort_undo() {
+    }
+}
+
+class openDialogCmd extends Cmd {
+    constructor() {
+        super('dialog', document.title);
+    }
+    execute() {
+        this.success();
+    }
+    redo() {
+        this.failure();
+    }
+    undo() {
+        this.success();
     }
 }
 
@@ -940,13 +1137,13 @@ export class History extends PDispatcher {
     private _list: { code: string, cmd: Cmd }[] = [];
     private _cache: Array<Cmd | number | string> = [];
     //cmd:当前正在执行的命令，cur:执行成功后指向的命令
-    private _curItem?: { cmd: Cmd, cur: [number,number]|null, curCmd:Cmd|null, go:number };
+    private _curItem?: { cmd: Cmd, cur: [number, number] | null, curCmd: Cmd | null, go: number };
     private _cur: [number, number] = [0, 0];
     private _goto: [number, number] = [0, 0];
     private _first: [number, number] = [0, 0];
     private _last: [number, number] = [0, 0];
 
-    constructor(public maxStep:number=50) {
+    constructor(public maxStep: number = 50) {
         super(undefined);
         this.addListener(CmdEvent.ItemSuccess, (pevent: PEvent) => {
             let cmd: Cmd = pevent.target as Cmd;
@@ -957,11 +1154,11 @@ export class History extends PDispatcher {
             }
             let item = this._curItem;
             if (item) {
-                if(!item.cur){
-                    this._syncHistory(this._addHistoryItem(item.cmd),callback);
-                }else{
+                if (!item.cur) {
+                    this._syncHistory(this._addHistoryItem(item.cmd), callback);
+                } else {
                     this._cur = item.cur;
-                    this._syncHistory({move:item.go,moveTitle:(item.curCmd as Cmd).title},callback);
+                    this._syncHistory({ move: item.go, moveTitle: (item.curCmd as Cmd).title }, callback);
                 }
             }
         }).addListener(CmdEvent.ItemFailure, (pevent: PEvent) => {
@@ -979,23 +1176,23 @@ export class History extends PDispatcher {
             // this.dispatch(new PEvent(CmdEvent.Complete));
         })
     }
-    getLength(){
+    getLength() {
         return this._list.length;
     }
-    getCode(){
-        return [this._cur[0],this._cur[1]];
+    getCode() {
+        return [this._cur[0], this._cur[1]];
     }
     private _pushState(code: string, url: string, isUri: boolean) {
         window.history.pushState(code, "", isUri ? url : "#" + encodeURI(url));
     }
-    public _syncHistory(change:{move?:number, moveTitle?:string, push?:{ code: string, url: string, title: string, isUri: boolean }},callback:()=>void){
+    public _syncHistory(change: { move?: number, moveTitle?: string, push?: { code: string, url: string, title: string, isUri: boolean } }, callback: () => void) {
         callback();
     }
-    private _addHistoryItem(cmd: Cmd): {move?:number, moveTitle?:string, push?:{ code: string, url: string, title: string, isUri: boolean }} {
+    private _addHistoryItem(cmd: Cmd): { move?: number, moveTitle?: string, push?: { code: string, url: string, title: string, isUri: boolean } } {
         //此时_cur必定等于_goto，因为只有在_cur==_goto时才会执行新的命令
-        let moveIndex: number = 0, moveTitle:string="";
+        let moveIndex: number = 0, moveTitle: string = "";
         if (this._cur.join('.') != this._first.join('.')) {
-            let del = this._list.splice(0, this._first[0]-this._cur[0]+this._first[0]-this._cur[1]);
+            let del = this._list.splice(0, this._first[0] - this._cur[0] + this._first[1] - this._cur[1]);
             this._first = [this._cur[0], this._cur[1]];
         }
         if (cmd.isUri) {
@@ -1004,7 +1201,7 @@ export class History extends PDispatcher {
                 moveIndex -= this._cur[1];
                 this._cur[1] = 0;
                 this._goto[1] = 0;
-                let moveCmd:Cmd = this.getCmdByCode(this._cur.join(".")) as Cmd;
+                let moveCmd: Cmd = this.getCmdByCode(this._cur.join(".")) as Cmd;
                 moveTitle = moveCmd.title;
             }
             this._cur[0]++;
@@ -1018,20 +1215,20 @@ export class History extends PDispatcher {
             cmd: cmd
         }
         this._list.unshift(item);
-        if(this._list.length > this.maxStep){
+        if (this._list.length > this.maxStep) {
             this._list.length = this.maxStep;
         }
         this._first = [this._cur[0], this._cur[1]];
-        let last = this._list[this._list.length-1];
+        let last = this._list[this._list.length - 1];
         let arr = last.code.split('.');
-        this._last = [parseInt(arr[0]),parseInt(arr[1])];
-        return {move:moveIndex, moveTitle:moveTitle, push:{ code: item.code, url: cmd.url, title: cmd.title, isUri: cmd.isUri }};
+        this._last = [parseInt(arr[0]), parseInt(arr[1])];
+        return { move: moveIndex, moveTitle: moveTitle, push: { code: item.code, url: cmd.url, title: cmd.title, isUri: cmd.isUri } };
     }
     getCmdByCode(code: string): Cmd | undefined {
-        let item = this._list.find(function(item){
+        let item = findInArray(this._list,function (item) {
             return item.code == code;
         })
-        return item?item.cmd:undefined;
+        return item ? item.cmd : undefined;
     }
     go(n: number | string) {
         this._cache.push(n);
@@ -1042,7 +1239,7 @@ export class History extends PDispatcher {
         this._cache.push(...arr);
         this.next();
     }
-    added(cmd: Cmd){
+    added(cmd: Cmd) {
         this._addHistoryItem(cmd);
     }
     private _executeGoto() {
@@ -1053,18 +1250,18 @@ export class History extends PDispatcher {
             if (g[1] < c[1]) {//后退一条
                 this._curItem = {
                     cmd: this.getCmdByCode(c.join('.')) as Cmd,
-                    cur : [c[0],c[1]-1],
-                    curCmd : this.getCmdByCode([c[0],c[1]-1].join('.')) as Cmd,
-                    go : -1
+                    cur: [c[0], c[1] - 1],
+                    curCmd: this.getCmdByCode([c[0], c[1] - 1].join('.')) as Cmd,
+                    go: -1
                 }
                 this._curItem.cmd.setParent(this);
                 this._curItem.cmd.undo();
             } else {//前进一条
                 this._curItem = {
                     cmd: this.getCmdByCode([c[0], c[1] + 1].join('.')) as Cmd,
-                    cur: [c[0],c[1]+1],
-                    curCmd : null,
-                    go : 1
+                    cur: [c[0], c[1] + 1],
+                    curCmd: null,
+                    go: 1
                 }
                 this._curItem.curCmd = this._curItem.cmd;
                 this._curItem.cmd.setParent(this);
@@ -1073,16 +1270,16 @@ export class History extends PDispatcher {
         } else {//跨uri
             this._curItem = {
                 cmd: this.getCmdByCode([g[0], 0].join('.')) as Cmd,
-                cur : [g[0],0],
-                curCmd : null,
-                go : uriN - c[1]
+                cur: [g[0], 0],
+                curCmd: null,
+                go: uriN - c[1]
             }
             this._curItem.curCmd = this._curItem.cmd;
             this._curItem.cmd.setParent(this);
             this._curItem.cmd.redo();
         }
     }
-    private _checkGoto(item: number | string): [number, number] {
+    private _checkGoto(item: number | string): [number, number] | null {
         let gotoCode: [number, number] = [this._goto[0], this._goto[1]];
         if (typeof item == "number") {
             if (item < 0) {
@@ -1106,6 +1303,9 @@ export class History extends PDispatcher {
             let arr = item.split('.');
             gotoCode = [parseInt(arr[0]), parseInt(arr[1])];
         }
+        if (this._cur.join(".") == this._last.join(".") && (gotoCode[0] < this._last[0] || gotoCode[1] < this._last[1])) {
+            return null;
+        }
         if (gotoCode[0] > this._first[0]) {
             gotoCode[0] = this._first[0];
         }
@@ -1115,6 +1315,8 @@ export class History extends PDispatcher {
         if (gotoCode[0] == this._first[0]) {
             if (gotoCode[1] > this._first[1]) {
                 gotoCode[1] = this._first[1];
+            } else if (gotoCode[1] < this._last[1]) {
+                gotoCode[1] = this._last[1];
             }
         } else {
             gotoCode[1] = 0;
@@ -1130,17 +1332,23 @@ export class History extends PDispatcher {
             if (item instanceof Cmd) {
                 this._curItem = {
                     cmd: item,
-                    cur:null,
-                    curCmd:null,
-                    go:0
+                    cur: null,
+                    curCmd: null,
+                    go: 0
                 }
                 item.setParent(this);
                 item.execute();
             } else if (item) {
-                this._goto = this._checkGoto(item);
-                this.next();
+                let arr = this._checkGoto(item);
+                if (arr) {
+                    this._goto = arr;
+                    this.next();
+                } else {
+                    this._cache = [];
+                    this.dispatch(new PEvent(CmdEvent.Overflow));
+                }
             } else {
-                console.log("Complete", this._cur, this._goto, this._list);
+                //console.log("Complete", this._cur, this._goto, this._list);
             }
         }
     }
@@ -1151,145 +1359,145 @@ export class History extends PDispatcher {
 //     let history = new History();
 //     return history;
 
-    // let supportState = window.history.pushState?true:false;
-    // let initTime = Date.now();
-    // let initId = initTime+'.0';
-    // let redoUrlInit = "/redo@"+initId;
-    // let undoUrlInit = "/undo@"+initId;
-    // let undoUrl:string;
-    // let redoUrl:string; 
-    // let curUrl:string = window.location.href;
+// let supportState = window.history.pushState?true:false;
+// let initTime = Date.now();
+// let initId = initTime+'.0';
+// let redoUrlInit = "/redo@"+initId;
+// let undoUrlInit = "/undo@"+initId;
+// let undoUrl:string;
+// let redoUrl:string; 
+// let curUrl:string = window.location.href;
 
-    // let historyList:string[] = [];
-    // let historyMap:{[key:string]:any} = {};
-    // let curIndex:string = initId;
-    // let gotoN:number=0;
-    // let gotoCmd:Cmd;
+// let historyList:string[] = [];
+// let historyMap:{[key:string]:any} = {};
+// let curIndex:string = initId;
+// let gotoN:number=0;
+// let gotoCmd:Cmd;
 
-    // function parseIndex(str:string):[number,number]{
-    //     let arr = str.split('.');
-    //     return [parseInt(arr[0]),parseInt(arr[1])];
-    // }
-    // function pushState(code:string,url:string,data:any):string{
-    //     if(supportState){
-    //         window.history.pushState(code,"","#"+encodeURI(url+'/'+code));
-    //     }else{
-    //         window.location.href = "#"+ encodeURI(url+'@'+code);
-    //     }
-    //     historyList.push(code);
-    //     historyMap[code] = data;
-    //     return window.location.href;
-    // }
-
-
-
-    // return {
-    //     back: function(){
-
-    //     },
-    //     pushUri : function(url:string,cmd:any={}){
-    //         let [curUriIndex,curActIndex] = parseIndex(curIndex);
-    //         if(curActIndex>0){
-    //             window.history.go(-curActIndex);
-    //         }
-    //         curUriIndex++;
-    //         curIndex = curUriIndex+'.'+0;
-    //         pushState(curIndex,url,[url]);
-    //     },
-    //     init : function(){
-    //         this.pushUri('init');
-    //         if(supportState){
-    //             bindEventListener(window, 'popstate', function(e){
-    //                 let code = e.state;
-    //                 if(code){
-    //                     let [uriIndex,actIndex] = parseIndex(code);
-    //                     let [curUriIndex,curActIndex] = parseIndex(curIndex);
-    //                     if(initTime <= uriIndex){
-    //                         let n = (curActIndex-actIndex)+(curUriIndex-uriIndex);
-    //                         console.log('go ',n);
-    //                         if(n!=0 && historyMap[code]){
-    //                             gotoN = -n;
-    //                             if(gotoN<0){//undo
-    //                                 if(curActIndex>0){
-    //                                     curActIndex
-    //                                 }
-    //                                 gotoCmd = historyMap[code];
-    //                             }
-    //                             gotoCmd = historyMap[code];
-    //                             window.history.go(n);
-    //                         }else if(gotoN){
-    //                             console.log(gotoCmd, gotoN>0?'redo':'undo', gotoN);
-    //                             //gotoCmd.execute();
-    //                             gotoN = 0;
-    //                         }
-    //                         //window.history.go(curIndex - index);
-    //                     }
-    //                 }
-
-    //                 // let url:string = window.location.href;
-    //                 // let index = historys.indexOf(url);
-    //                 // if(index > -1){
-    //                 //     console.log(curIndex - index);
-    //                 //     window.history.go(curIndex - index);
-    //                 // }
+// function parseIndex(str:string):[number,number]{
+//     let arr = str.split('.');
+//     return [parseInt(arr[0]),parseInt(arr[1])];
+// }
+// function pushState(code:string,url:string,data:any):string{
+//     if(supportState){
+//         window.history.pushState(code,"","#"+encodeURI(url+'/'+code));
+//     }else{
+//         window.location.href = "#"+ encodeURI(url+'@'+code);
+//     }
+//     historyList.push(code);
+//     historyMap[code] = data;
+//     return window.location.href;
+// }
 
 
-    //                 // console.log('state',url);
-    //                 // if(url==redoUrl){
-    //                 //     window.history.go(-1);
-    //                 //     console.log("=== redo ===");
-    //                 // }else if(url==undoUrl){
-    //                 //     window.history.go(1);
-    //                 //     console.log("=== undo ===");
-    //                 // }else{
-    //                 //     console.log("=== change ===");
-    //                 // }
-    //             });
-    //         }else{
-    //             bindEventListener(window, 'hashchange', function(e){
-    //                 console.log('hash',window.location.hash,e);
-    //             });
-    //         }
-    //         // window.setTimeout(function(){//fix ie8下触发多次
-    //         //     bindEventListener(window, 'hashchange', function(e){
-    //         //         console.log('hash',window.location.hash);
-    //         //         console.log(e);
-    //         //         // if(ready){
-    //         //         //     ready = false;
-    //         //         //     dispatchEvent("historyReady");
-    //         //         //     return true;
-    //         //         // }
-    //         //         // if(disableChange){
-    //         //         //     disableChange--;
-    //         //         //     if(evt){
-    //         //         //         dispatchEvent(evt);
-    //         //         //         evt = null;
-    //         //         //     }
-    //         //         //     return true;
-    //         //         // }
-    //         //         // var hash = window.location.hash;
-    //         //         // hash = hash?hash:"#";
-    //         //         // if(hash == undoUrl){
-    //         //         //     disableChange++;
-    //         //         //     window.history.go(1);
-    //         //         //     evt = "historyUndo";
-    //         //         // }else if(hash == redoUrl){
-    //         //         //     disableChange++;
-    //         //         //     window.history.go(-1);
-    //         //         //     evt = "historyRedo";
-    //         //         // }else{
-    //         //         //     potato.alert(potato.errors.a10);
-    //         //         //     potato.setHash(redoUrl.substr(1));
-    //         //         //     disableChange++;
-    //         //         //     window.history.go(-1);
-    //         //         // }
-    //         //     });
-    //         //     //ready = true;
 
-    //         // },0);
+// return {
+//     back: function(){
 
-    //     }
-    // }
+//     },
+//     pushUri : function(url:string,cmd:any={}){
+//         let [curUriIndex,curActIndex] = parseIndex(curIndex);
+//         if(curActIndex>0){
+//             window.history.go(-curActIndex);
+//         }
+//         curUriIndex++;
+//         curIndex = curUriIndex+'.'+0;
+//         pushState(curIndex,url,[url]);
+//     },
+//     init : function(){
+//         this.pushUri('init');
+//         if(supportState){
+//             bindEventListener(window, 'popstate', function(e){
+//                 let code = e.state;
+//                 if(code){
+//                     let [uriIndex,actIndex] = parseIndex(code);
+//                     let [curUriIndex,curActIndex] = parseIndex(curIndex);
+//                     if(initTime <= uriIndex){
+//                         let n = (curActIndex-actIndex)+(curUriIndex-uriIndex);
+//                         console.log('go ',n);
+//                         if(n!=0 && historyMap[code]){
+//                             gotoN = -n;
+//                             if(gotoN<0){//undo
+//                                 if(curActIndex>0){
+//                                     curActIndex
+//                                 }
+//                                 gotoCmd = historyMap[code];
+//                             }
+//                             gotoCmd = historyMap[code];
+//                             window.history.go(n);
+//                         }else if(gotoN){
+//                             console.log(gotoCmd, gotoN>0?'redo':'undo', gotoN);
+//                             //gotoCmd.execute();
+//                             gotoN = 0;
+//                         }
+//                         //window.history.go(curIndex - index);
+//                     }
+//                 }
+
+//                 // let url:string = window.location.href;
+//                 // let index = historys.indexOf(url);
+//                 // if(index > -1){
+//                 //     console.log(curIndex - index);
+//                 //     window.history.go(curIndex - index);
+//                 // }
+
+
+//                 // console.log('state',url);
+//                 // if(url==redoUrl){
+//                 //     window.history.go(-1);
+//                 //     console.log("=== redo ===");
+//                 // }else if(url==undoUrl){
+//                 //     window.history.go(1);
+//                 //     console.log("=== undo ===");
+//                 // }else{
+//                 //     console.log("=== change ===");
+//                 // }
+//             });
+//         }else{
+//             bindEventListener(window, 'hashchange', function(e){
+//                 console.log('hash',window.location.hash,e);
+//             });
+//         }
+//         // window.setTimeout(function(){//fix ie8下触发多次
+//         //     bindEventListener(window, 'hashchange', function(e){
+//         //         console.log('hash',window.location.hash);
+//         //         console.log(e);
+//         //         // if(ready){
+//         //         //     ready = false;
+//         //         //     dispatchEvent("historyReady");
+//         //         //     return true;
+//         //         // }
+//         //         // if(disableChange){
+//         //         //     disableChange--;
+//         //         //     if(evt){
+//         //         //         dispatchEvent(evt);
+//         //         //         evt = null;
+//         //         //     }
+//         //         //     return true;
+//         //         // }
+//         //         // var hash = window.location.hash;
+//         //         // hash = hash?hash:"#";
+//         //         // if(hash == undoUrl){
+//         //         //     disableChange++;
+//         //         //     window.history.go(1);
+//         //         //     evt = "historyUndo";
+//         //         // }else if(hash == redoUrl){
+//         //         //     disableChange++;
+//         //         //     window.history.go(-1);
+//         //         //     evt = "historyRedo";
+//         //         // }else{
+//         //         //     potato.alert(potato.errors.a10);
+//         //         //     potato.setHash(redoUrl.substr(1));
+//         //         //     disableChange++;
+//         //         //     window.history.go(-1);
+//         //         // }
+//         //     });
+//         //     //ready = true;
+
+//         // },0);
+
+//     }
+// }
 
 
 // })();
@@ -1397,6 +1605,10 @@ let _topDialog: Dialog;
 
 function setTopDialog(dialog: Dialog) {
     if (_topDialog != dialog) {
+        if (_topDialog == application) {
+            application.history.push(new openDialogCmd());
+            application.history.go(-1);
+        }
         _topDialog && _topDialog.view.removeClass("pt-topDialog");
         _topDialog = dialog;
         _topDialog.view.addClass("pt-topDialog");

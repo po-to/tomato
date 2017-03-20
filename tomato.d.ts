@@ -1,8 +1,9 @@
-/*!
- * Copyright po-to.org All Rights Reserved.
- * https://github.com/po-to/
- * Licensed under the MIT license
- */
+export interface IViewSource {
+    namespace: string;
+    source: string;
+}
+export declare const IViewSourceNamespace: string;
+export declare function isIViewSource(data: Object): data is IViewSource;
 declare let namespace: string;
 export declare const TaskCountEvent: {
     Added: string;
@@ -38,7 +39,6 @@ export declare class PEvent {
     bubbling: boolean;
     readonly target: PDispatcher;
     constructor(name: string, data?: any, bubbling?: boolean);
-    _setTarget(target: PDispatcher): this;
 }
 export declare class PError extends Error {
     readonly name: string;
@@ -97,11 +97,11 @@ export interface VPView extends View {
 }
 export declare class VPresenter extends PDispatcher {
     readonly view: VPView;
-    readonly vpid: string;
+    vpid: string;
     readonly parent: VPresenter | undefined;
     constructor(view: VPView, parent?: VPresenter, vpid?: string);
-    isWholeVPresenter(): boolean;
-    init(subs: VPresenter[]): Promise<this> | any;
+    isWholeVPresenter(): this is WholeVPresenter;
+    init(subs: VPresenter[]): Promise<this> | this;
     protected _allowInstallTo(parent: VPresenter): boolean;
     protected _allowUninstallTo(parent: VPresenter): boolean;
     protected _allowAppendChild(child: VPresenter): boolean;
@@ -123,7 +123,9 @@ export declare class VPresenter extends PDispatcher {
     destroy(): void;
     getDialogClassName(): string;
 }
-export declare function getVPresenter<T>(data: string | VPView, successCallback?: (vp: T) => void, failueCallback?: (error: Error) => void): T | Promise<T>;
+export declare let getVPresenter: (data: string | VPView) => VPresenter | Promise<VPresenter>;
+export declare function syncGetVPresenter<T>(data: string | VPView): T;
+export declare function asyncGetVPresenter<T>(data: string | VPView): Promise<T>;
 export declare enum DialogState {
     Focused = 0,
     Blured = 1,
@@ -168,7 +170,6 @@ export interface DialogConfig {
     footerEffect: string | undefined;
     asideEffect: string | undefined;
     bodyEffect: string | undefined;
-    rootUriCmd?: Cmd | undefined;
 }
 export interface DialogConfigOptions {
     className?: string;
@@ -193,7 +194,6 @@ export interface DialogConfigOptions {
     footerEffect?: string;
     asideEffect?: string;
     bodyEffect?: string;
-    rootUriCmd?: Cmd;
 }
 export declare abstract class Dialog extends VPresenter {
     readonly history: History;
@@ -223,6 +223,7 @@ export declare abstract class Dialog extends VPresenter {
         footer?: View;
         aside?: View;
     }, config?: DialogConfigOptions);
+    protected _onHistoryOverflow(e: any): void;
     setConfig(config: DialogConfigOptions): void;
     getZIndex(): number;
     getFocusedChild(): Dialog;
@@ -240,6 +241,7 @@ export declare abstract class Dialog extends VPresenter {
     protected _allowClose(): boolean;
     private _checkFocus();
     private _checkClose();
+    refresh(): void;
     focus(_checked?: boolean, _parentCall?: boolean): boolean;
     close(): boolean;
     private _blur();
@@ -259,7 +261,7 @@ export interface WholeVPresenter extends VPresenter {
 }
 export declare class Application extends Dialog {
     initTime: number;
-    constructor(els: {
+    constructor(rootUri: Cmd | null, els: {
         view: LayerView;
         dialog: View;
         mask: View;
@@ -268,7 +270,7 @@ export declare class Application extends Dialog {
         footer?: View;
         aside?: View;
     }, config?: DialogConfigOptions);
-    private _initHistory(initTime, rootUriCmd);
+    private _initHistory(initTime, rootUri);
     close(): boolean;
     focus(checked?: boolean): boolean;
 }
@@ -277,13 +279,11 @@ export declare class Cmd extends PDispatcher {
     readonly url: string;
     readonly title: string;
     readonly isUri: boolean;
-    constructor(url: string, title: string, isUri: boolean);
+    constructor(url: string, title: string, isUri?: boolean);
     success(): void;
     failure(): void;
     execute(): void;
-    abort_execute(): void;
     redo(): void;
-    abort_redo(): void;
     undo(): void;
     abort_undo(): void;
 }

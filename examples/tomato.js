@@ -311,7 +311,7 @@ define(["require", "exports"], function (require, exports) {
         };
         VPresenter.prototype.destroy = function () {
             if (this.vpid) {
-                delete VPresenterStore[this.vpid];
+                delete VPresenterStore[this.vpid.substr(0, this.vpid.indexOf("?")).replace(/\/+$/, "")];
             }
         };
         VPresenter.prototype.getDialogClassName = function () {
@@ -322,6 +322,7 @@ define(["require", "exports"], function (require, exports) {
     exports.VPresenter = VPresenter;
     var VPresenterStore = {};
     function getVPresenter(data, successCallback, failueCallback) {
+        var url;
         var id;
         var view;
         if (typeof data != "string") {
@@ -332,6 +333,8 @@ define(["require", "exports"], function (require, exports) {
             view = null;
             id = data;
         }
+        url = id;
+        id = id.substr(0, id.indexOf("?")).replace(/\/+$/, "");
         var cacheData = VPresenterStore[id];
         if (cacheData instanceof VPresenter) {
             return cacheData;
@@ -351,16 +354,18 @@ define(["require", "exports"], function (require, exports) {
         var onSuccess = function (con, dom, resolve, reject) {
             var vp = null;
             try {
-                vp = new con(dom, undefined, id);
+                vp = new con(dom, undefined, url);
             }
             catch (e) {
                 onError(e, reject);
             }
             if (vp) {
                 Promise.all(dom.getSUBS().map(function (dom) {
-                    var id = dom.getVPID();
+                    var arr = dom.getVPID().split("?");
+                    var id = arr[0].replace(/\/+$/, "");
                     if (VPresenterStore[id]) {
-                        dom.setVPID(id + "#" + (++autoID));
+                        arr[0] += "/" + (++autoID);
+                        dom.setVPID(arr.join("?"));
                     }
                     return getVPresenter(dom);
                 })).then(function (list) {
@@ -391,7 +396,7 @@ define(["require", "exports"], function (require, exports) {
                 init(view);
             }
             else {
-                require([id], function (obj) {
+                require([url], function (obj) {
                     if (typeof obj == "string") {
                         view = createVPView(obj);
                     }
@@ -405,7 +410,7 @@ define(["require", "exports"], function (require, exports) {
             }
         });
         VPresenterStore[id] = promise;
-        taskCounter.addItem(promise, 'load:' + id);
+        taskCounter.addItem(promise, 'load:' + url);
         return promise;
     }
     exports.getVPresenter = getVPresenter;
@@ -464,8 +469,14 @@ define(["require", "exports"], function (require, exports) {
             if (config) {
                 _this.setConfig(config);
             }
+            _this.history.addListener(exports.CmdEvent.Overflow, function (e) {
+                _this._onHistoryOverflow(e);
+            });
             return _this;
         }
+        Dialog.prototype._onHistoryOverflow = function (e) {
+            this.close();
+        };
         Dialog.prototype.setConfig = function (config) {
             var oldConfig = this.config;
             this.config = Object.assign({}, this.config, config);
@@ -576,6 +587,11 @@ define(["require", "exports"], function (require, exports) {
             }
             return true;
         };
+        Dialog.prototype.refresh = function () {
+            this.refreshSize();
+            this.refreshLayout();
+            this.refreshPosition();
+        };
         Dialog.prototype.focus = function (_checked, _parentCall) {
             /* 三种调用场景：1.由close()上文调用；2.当前为closed状态; 3.当前为blured状态 */
             //if (this.state == DialogState.Focused) { return false; }
@@ -609,9 +625,7 @@ define(["require", "exports"], function (require, exports) {
                 var curState = this.state;
                 this._setState(DialogState.Focused);
                 if (curState == DialogState.Closed) {
-                    this.refreshSize();
-                    this.refreshPosition();
-                    this.refreshLayout();
+                    this.refresh();
                 }
                 this._afterFocus();
                 if (!_parentCall) {
@@ -643,9 +657,7 @@ define(["require", "exports"], function (require, exports) {
             }
             this._setZIndex(-1);
             this._setState(DialogState.Closed);
-            this.refreshSize();
-            this.refreshPosition();
-            this.refreshLayout();
+            this.refresh();
             this._afterClose();
             this.dispatch(new PEvent(exports.DialogEvent.Closed));
             if (this.content) {
@@ -731,9 +743,7 @@ define(["require", "exports"], function (require, exports) {
                 }
                 if (this.state != DialogState.Closed) {
                     if (this.config.size.width == DialogSize.Content || this.config.size.height == DialogSize.Content) {
-                        this.refreshSize();
-                        this.refreshPosition();
-                        this.refreshLayout();
+                        this.refresh();
                     }
                     else {
                         this.refreshLayout();
@@ -781,7 +791,7 @@ define(["require", "exports"], function (require, exports) {
     exports.Dialog = Dialog;
     var Application = (function (_super) {
         __extends(Application, _super);
-        function Application(els, config, rootUriCmd) {
+        function Application(rootUri, els, config) {
             var _this = _super.call(this, els, config) || this;
             _this.initTime = Date.now();
             _this._setZIndex(0);
@@ -796,20 +806,20 @@ define(["require", "exports"], function (require, exports) {
             }).addListener(exports.TaskCountEvent.Free, function (e) {
                 _this.mask.removeClass("pt-busy");
             });
-            if (rootUriCmd) {
-                _this._initHistory(_this.initTime, rootUriCmd);
+            if (rootUri) {
+                _this._initHistory(_this.initTime, rootUri);
             }
             return _this;
         }
-        Application.prototype._initHistory = function (initTime, rootUriCmd) {
+        Application.prototype._initHistory = function (initTime, rootUri) {
             var supportState = window.history.pushState ? true : false;
             var _trigger;
             var history = this.history;
             function pushState(code, title, url, isUri) {
                 window.history.pushState(code, title, isUri ? url : "#" + encodeURI(url));
             }
-            function addState(code) {
-                window.history.replaceState(initTime + "." + code, document.title, window.location.href);
+            function addState(code, title, url) {
+                window.history.replaceState(initTime + "." + code, title || document.title, url || window.location.href);
             }
             history._syncHistory = function (change, callback) {
                 var execute = function () {
@@ -844,7 +854,9 @@ define(["require", "exports"], function (require, exports) {
                             document.title = cmd.title;
                             _trigger = function () {
                                 document.title = title_1;
-                                setTimeout(function () { history.go(-n_1); }, 1); //异步触发
+                                setTimeout(function () {
+                                    getTopDialog().history.go(-n_1);
+                                }, 1); //异步触发
                             };
                             window.history.go(n_1);
                         }
@@ -884,8 +896,9 @@ define(["require", "exports"], function (require, exports) {
                     console.log('hash', window.location.hash, e);
                 });
             }
-            history.added(rootUriCmd);
-            addState("1.0");
+            document.title = rootUri.title;
+            addState("1.0", rootUri.title, rootUri.url);
+            this.history.added(rootUri);
         };
         Application.prototype.close = function () {
             return false;
@@ -901,6 +914,7 @@ define(["require", "exports"], function (require, exports) {
     var Cmd = (function (_super) {
         __extends(Cmd, _super);
         function Cmd(url, title, isUri) {
+            if (isUri === void 0) { isUri = false; }
             var _this = _super.call(this) || this;
             _this.url = url;
             _this.title = title;
@@ -914,19 +928,15 @@ define(["require", "exports"], function (require, exports) {
             this.dispatch(new PEvent(exports.CmdEvent.ItemFailure, this, true));
         };
         Cmd.prototype.execute = function () {
-            console.log(this.url, 'execute');
+            console.log('execute()', this.url);
             this.success();
-        };
-        Cmd.prototype.abort_execute = function () {
         };
         Cmd.prototype.redo = function () {
-            console.log(this.url, 'redo');
+            console.log('redo()', this.url);
             this.success();
         };
-        Cmd.prototype.abort_redo = function () {
-        };
         Cmd.prototype.undo = function () {
-            console.log(this.url, 'undo');
+            console.log('undo()', this.url);
             this.success();
         };
         Cmd.prototype.abort_undo = function () {
@@ -934,6 +944,22 @@ define(["require", "exports"], function (require, exports) {
         return Cmd;
     }(PDispatcher));
     exports.Cmd = Cmd;
+    var openDialogCmd = (function (_super) {
+        __extends(openDialogCmd, _super);
+        function openDialogCmd() {
+            return _super.call(this, 'dialog', document.title) || this;
+        }
+        openDialogCmd.prototype.execute = function () {
+            this.success();
+        };
+        openDialogCmd.prototype.redo = function () {
+            this.failure();
+        };
+        openDialogCmd.prototype.undo = function () {
+            this.success();
+        };
+        return openDialogCmd;
+    }(Cmd));
     function bindEventListener(tag, type, fun) {
         if (window.addEventListener) {
             tag.addEventListener(type, fun, false);
@@ -1013,7 +1039,7 @@ define(["require", "exports"], function (require, exports) {
             //此时_cur必定等于_goto，因为只有在_cur==_goto时才会执行新的命令
             var moveIndex = 0, moveTitle = "";
             if (this._cur.join('.') != this._first.join('.')) {
-                var del = this._list.splice(0, this._first[0] - this._cur[0] + this._first[0] - this._cur[1]);
+                var del = this._list.splice(0, this._first[0] - this._cur[0] + this._first[1] - this._cur[1]);
                 this._first = [this._cur[0], this._cur[1]];
             }
             if (cmd.isUri) {
@@ -1132,6 +1158,9 @@ define(["require", "exports"], function (require, exports) {
                 var arr = item.split('.');
                 gotoCode = [parseInt(arr[0]), parseInt(arr[1])];
             }
+            if (this._cur.join(".") == this._last.join(".") && (gotoCode[0] < this._last[0] || gotoCode[1] < this._last[1])) {
+                return null;
+            }
             if (gotoCode[0] > this._first[0]) {
                 gotoCode[0] = this._first[0];
             }
@@ -1141,6 +1170,9 @@ define(["require", "exports"], function (require, exports) {
             if (gotoCode[0] == this._first[0]) {
                 if (gotoCode[1] > this._first[1]) {
                     gotoCode[1] = this._first[1];
+                }
+                else if (gotoCode[1] < this._last[1]) {
+                    gotoCode[1] = this._last[1];
                 }
             }
             else {
@@ -1168,11 +1200,17 @@ define(["require", "exports"], function (require, exports) {
                     item.execute();
                 }
                 else if (item) {
-                    this._goto = this._checkGoto(item);
-                    this.next();
+                    var arr = this._checkGoto(item);
+                    if (arr) {
+                        this._goto = arr;
+                        this.next();
+                    }
+                    else {
+                        this._cache = [];
+                        this.dispatch(new PEvent(exports.CmdEvent.Overflow));
+                    }
                 }
                 else {
-                    console.log("Complete", this._cur, this._goto, this._list);
                 }
             }
         };
@@ -1405,6 +1443,10 @@ define(["require", "exports"], function (require, exports) {
     var _topDialog;
     function setTopDialog(dialog) {
         if (_topDialog != dialog) {
+            if (_topDialog == application) {
+                application.history.push(new openDialogCmd());
+                application.history.go(-1);
+            }
             _topDialog && _topDialog.view.removeClass("pt-topDialog");
             _topDialog = dialog;
             _topDialog.view.addClass("pt-topDialog");
