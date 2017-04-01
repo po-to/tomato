@@ -6,14 +6,6 @@
 declare var require: (deps: string[]|string, succCallback?: (data: any) => void, failCallback?: (error: any) => void) => void;
 declare var define: (id: string, mod: any) => void;
 
-export interface IViewSource {
-    namespace: string;
-    source:string;
-}
-export const IViewSourceNamespace: string = "com.po-to/IViewSource";
-export function isIViewSource(data:Object):data is IViewSource{
-    return data['namespace'] == IViewSourceNamespace;
-}
 function findInArray<T>(arr:T[],fun:(item:T)=>boolean):T|undefined{
     for(let item of arr){
         if(fun(item)){
@@ -360,14 +352,9 @@ export let getVPresenter = (function(VPresenterStore){
         let vpview:VPView;
         if(typeof data == "string"){
             return createVPView(data);
-        }else if(isIViewSource(data)){
-            return createVPView(data.source);
         }else{
             return data;
         }
-    }
-    function subVPresenter(subs:VPresenter[],vp:VPresenter){
-
     }
     function initVPresenter(con: Function, view: VPView, url:string) : VPresenter | Promise<VPresenter> {
         let vp: VPresenter = new (con as any)(view, undefined, url);
@@ -467,14 +454,14 @@ export let getVPresenter = (function(VPresenterStore){
 })(VPresenterStore)
 
 export function syncGetVPresenter<T>(data: string | VPView):T{
-    return this.getVPresenter(data);
+    return getVPresenter(data) as any;
 }
 export function asyncGetVPresenter<T>(data: string | VPView):Promise<T>{
-    let result = this.getVPresenter(data);
+    let result = getVPresenter(data);
     if(result instanceof Promise){
-        return result;
+        return result as any;
     }else{
-        return Promise.resolve(result);
+        return Promise.resolve(result as any);
     }
 }
 // export function getVPresenter<T>(data: string | VPView, successCallback?: (vp: T) => void, failueCallback?: (error: Error) => void): T | Promise<T> {
