@@ -53,12 +53,6 @@ define(["require", "exports"], function (require, exports) {
         ChildRemoved: "CPresenterEvent.ChildRemoved",
         Resized: "CPresenterEvent.Resized"
     };
-    var PropState;
-    (function (PropState) {
-        PropState[PropState["Invalid"] = 0] = "Invalid";
-        PropState[PropState["Computing"] = 1] = "Computing";
-        PropState[PropState["Updated"] = 2] = "Updated";
-    })(PropState = exports.PropState || (exports.PropState = {}));
     exports.VPresenterTransaction = {
         AllowInstall: "AllowInstall"
     };
@@ -118,18 +112,22 @@ define(["require", "exports"], function (require, exports) {
         });
         return obj;
     }
-    var _invalidLayoutTimer = 0;
-    function invalidProp(vp) {
-        if (!_invalidLayoutTimer) {
-            _invalidLayoutTimer = setTimeout(function () {
-                _invalidLayoutTimer = 0;
-                application.eachChildren(function (vp) {
-                    vp.updateProp();
-                });
+    var _invalidLayoutList = null;
+    function invalidLayout(vp) {
+        if (!_invalidLayoutList) {
+            _invalidLayoutList = {};
+            setTimeout(function () {
+                var list = _invalidLayoutList || {};
+                _invalidLayoutList = null;
+                for (var key in list) {
+                    var vp_1 = list[key];
+                    vp_1._updateLayout();
+                }
             }, 0);
         }
+        _invalidLayoutList[vp.nid] = vp;
     }
-    exports.invalidProp = invalidProp;
+    exports.invalidLayout = invalidLayout;
     var PDispatcher = (function () {
         function PDispatcher(parent) {
             this.parent = parent;
@@ -261,41 +259,15 @@ define(["require", "exports"], function (require, exports) {
         function VPresenter(view, parent, vpid) {
             var _this = _super.call(this, parent) || this;
             _this.view = view;
+            _this.vpid = vpid;
             _this.children = [];
-            _this.vpid = "";
-            _this._propState = {};
-            _this._propValue = {};
-            if (vpid) {
-                _this.vpid = vpid.split("?")[0].replace(/\/+$/, "");
-            }
-            if (_this.vpid) {
-                VPresenterStore[_this.vpid] = _this;
-            }
-            _this.initialization = _this._init();
+            _this._internalSize = { x: NaN, y: NaN, width: NaN, height: NaN };
+            _this._invalidSize = { x: false, y: false, width: false, height: false };
+            _this.nid = (autoID++) + "";
             return _this;
         }
-        VPresenter.prototype._init = function () {
-            var _this = this;
-            var hasPromise = false;
-            var list = this.view.getSUBS().map(function (view) {
-                var result = exports.getVPresenter(view, _this, true);
-                if (!hasPromise && result instanceof Promise) {
-                    hasPromise = true;
-                }
-                return result;
-            });
-            if (!list.length || !hasPromise) {
-                (_a = this.children).push.apply(_a, list);
-                return null;
-            }
-            else {
-                return Promise.all(list).then(function (list) {
-                    (_a = _this.children).push.apply(_a, list);
-                    return _this;
-                    var _a;
-                });
-            }
-            var _a;
+        VPresenter.prototype.init = function (subs) {
+            return this;
         };
         VPresenter.prototype._allowInstallTo = function (parent) {
             return true;
@@ -352,6 +324,10 @@ define(["require", "exports"], function (require, exports) {
             member._beforeUninstallTo(this);
             this.children.splice(this.children.indexOf(member), 1);
             this._removeView(member);
+            this._resizeX(member);
+            this._resizeY(member);
+            this._resizeWidth(member);
+            this._resizeHeight(member);
             member.setParent(undefined);
             this._afterRemoveChild(member);
             member._afterUninstallTo(this);
@@ -395,6 +371,10 @@ define(["require", "exports"], function (require, exports) {
             member.setParent(this);
             this.children.push(member);
             this._appendView(member);
+            this._resizeX(member);
+            this._resizeY(member);
+            this._resizeWidth(member);
+            this._resizeHeight(member);
             this._afterAppendChild(member);
             member._afterInstallTo(this);
             this.dispatch(new PEvent(exports.VPresenterEvent.ChildAppended));
@@ -403,7 +383,7 @@ define(["require", "exports"], function (require, exports) {
         };
         VPresenter.prototype.destroy = function () {
             if (this.vpid) {
-                delete VPresenterStore[this.vpid];
+                delete VPresenterStore[this.vpid.substr(0, this.vpid.indexOf("?")).replace(/\/+$/, "")];
             }
         };
         VPresenter.prototype.eachChildren = function (callback, andSelf) {
@@ -416,50 +396,179 @@ define(["require", "exports"], function (require, exports) {
                 });
             }
         };
-        VPresenter.prototype.invalidProp = function (prop) {
-            if (this._propState[prop] == PropState.Invalid) {
+        VPresenter.prototype._resizeX = function (target) {
+            if (target === void 0) { target = this; }
+            if (this._invalidSize.x) {
                 return;
             }
-            this._propState[prop] = PropState.Invalid;
-            invalidProp(this);
-        };
-        VPresenter.prototype.getProp = function (prop, ovalue) {
-            var value = this._propState[prop];
-            if (value == PropState.Invalid) {
-                if (ovalue) {
-                    return this._propValue[prop];
-                }
-                else {
-                    throw this.vpid + '.' + prop + ' is invalid';
-                }
+            if (target == this) {
+                invalidLayout(this);
+                this._invalidSize.x = true;
+                this.parent && this.parent._resizeX(this);
             }
-            else if (value == PropState.Computing) {
-                if (ovalue) {
-                    return this._propValue[prop];
-                }
-                else {
-                    throw this.vpid + '.' + prop + ' is loop dependency';
-                }
+            else if (target == this.parent) {
             }
-            else if (value == PropState.Updated) {
-                this._propState[prop] = PropState.Computing;
-                this._propValue[prop] = this._computeProp(prop);
-                delete this._propState[prop];
-                return this._propValue[prop];
-            }
-            else {
-                return this._propValue[prop];
+            else if (target.parent == this) {
+                if (this._widthDependOn == SizeDependOn.children) {
+                    this._resizeWidth(target);
+                }
             }
         };
-        VPresenter.prototype._computeProp = function (prop) {
-            return '';
-        };
-        VPresenter.prototype.updateProp = function () {
-            for (var key in this._propState) {
-                if (this._propState[key] == PropState.Invalid) {
-                    this._propState[key] = PropState.Updated;
+        VPresenter.prototype._resizeY = function (target) {
+            if (target === void 0) { target = this; }
+            if (this._invalidSize.y) {
+                return;
+            }
+            if (target == this) {
+                invalidLayout(this);
+                this._invalidSize.y = true;
+                this.parent && this.parent._resizeY(this);
+            }
+            else if (target == this.parent) {
+            }
+            else if (target.parent == this) {
+                if (this._heightDependOn == SizeDependOn.children) {
+                    this._resizeHeight(target);
                 }
             }
+        };
+        VPresenter.prototype._resizeWidth = function (target) {
+            if (target === void 0) { target = this; }
+            if (this._invalidSize.width) {
+                return;
+            }
+            if (target == this) {
+                invalidLayout(this);
+                this._invalidSize.width = true;
+                this.parent && this.parent._resizeWidth(this);
+                this.children.length && this.children.forEach(function (child) {
+                    child._resizeWidth(this);
+                });
+            }
+            else if (target == this.parent) {
+                if (this._widthDependOn = SizeDependOn.parent) {
+                    invalidLayout(this);
+                    this._invalidSize.width = true;
+                    this.children.length && this.children.forEach(function (child) {
+                        child._resizeWidth(this);
+                    });
+                }
+            }
+            else if (target.parent == this) {
+                if (this._widthDependOn == SizeDependOn.children) {
+                    invalidLayout(this);
+                    this._invalidSize.width = true;
+                    this.parent && this.parent._resizeWidth(this);
+                }
+            }
+        };
+        VPresenter.prototype._resizeHeight = function (target) {
+            if (target === void 0) { target = this; }
+            if (this._invalidSize.height) {
+                return;
+            }
+            if (target == this) {
+                invalidLayout(this);
+                this._invalidSize.height = true;
+                this.parent && this.parent._resizeHeight(this);
+                this.children.length && this.children.forEach(function (child) {
+                    child._resizeHeight(this);
+                });
+            }
+            else if (target == this.parent) {
+                if (this._widthDependOn = SizeDependOn.parent) {
+                    invalidLayout(this);
+                    this._invalidSize.height = true;
+                    this.children.length && this.children.forEach(function (child) {
+                        child._resizeHeight(this);
+                    });
+                }
+            }
+            else if (target.parent == this) {
+                if (this._heightDependOn == SizeDependOn.children) {
+                    invalidLayout(this);
+                    this._invalidSize.height = true;
+                    this.parent && this.parent._resizeHeight(this);
+                }
+            }
+        };
+        VPresenter.prototype._computeX = function () {
+            return 0;
+        };
+        VPresenter.prototype._computeY = function () {
+            return 0;
+        };
+        VPresenter.prototype._computeWidth = function () {
+            return 0;
+        };
+        VPresenter.prototype._computeHeight = function () {
+            return 0;
+        };
+        VPresenter.prototype.getX = function (original) {
+            if (original === void 0) { original = false; }
+            var size = this._internalSize;
+            var invalid = this._invalidSize;
+            if (invalid.x && !original) {
+                return NaN;
+            }
+            if (isNaN(size.x)) {
+                size.x = this._computeX();
+            }
+            return size.x;
+        };
+        VPresenter.prototype.getY = function (original) {
+            if (original === void 0) { original = false; }
+            var size = this._internalSize;
+            var invalid = this._invalidSize;
+            if (invalid.y && original) {
+                return NaN;
+            }
+            if (isNaN(size.y)) {
+                size.y = this._computeY();
+            }
+            return size.y;
+        };
+        VPresenter.prototype.getWidth = function (original) {
+            if (original === void 0) { original = false; }
+            var size = this._internalSize;
+            var invalid = this._invalidSize;
+            if (invalid.width && original) {
+                return NaN;
+            }
+            if (isNaN(size.width)) {
+                size.width = this._computeWidth();
+            }
+            return size.width;
+        };
+        VPresenter.prototype.getHeight = function (original) {
+            if (original === void 0) { original = false; }
+            var size = this._internalSize;
+            var invalid = this._invalidSize;
+            if (invalid.height && original) {
+                return NaN;
+            }
+            if (isNaN(size.height)) {
+                size.height = this._computeHeight();
+            }
+            return size.height;
+        };
+        VPresenter.prototype._updateLayout = function () {
+            var size = this._internalSize;
+            var invalid = this._invalidSize;
+            var updated = { x: invalid.x, y: invalid.y, width: invalid.width, height: invalid.height };
+            if (invalid.x) {
+                size.x = NaN;
+            }
+            if (invalid.y) {
+                size.y = NaN;
+            }
+            if (invalid.width) {
+                size.width = NaN;
+            }
+            if (invalid.height) {
+                size.height = NaN;
+            }
+            this.dispatch(new PEvent(exports.VPresenterEvent.Resized, updated));
         };
         return VPresenter;
     }(PDispatcher));
@@ -483,21 +592,32 @@ define(["require", "exports"], function (require, exports) {
         function buildView(data) {
             return createVPView(data);
         }
-        function initVPresenter(con, view, url, parent, inited) {
-            var vp = new con(view, parent, url);
-            if (inited) {
-                if (vp.initialization) {
-                    return vp.initialization;
+        function initVPresenter(con, view, url) {
+            var vp = new con(view, undefined, url);
+            var hasPromise = false;
+            var list = view.getSUBS().map(function (view) {
+                var arr = view.getVPID().split("?");
+                var id = arr[0].replace(/\/+$/, "");
+                var result = exports.getVPresenter(view);
+                if (!hasPromise && result instanceof Promise) {
+                    hasPromise = true;
                 }
-                else {
-                    return vp;
-                }
+                return result;
+                // if (VPresenterStore[id]) {
+                //     arr[0] += "/" + (++autoID);
+                //     view.setVPID(arr.join("?"));
+                // }
+            });
+            if (!list.length || !hasPromise) {
+                return vp.init(list);
             }
             else {
-                return vp;
+                return Promise.all(list).then(function (list) {
+                    return vp.init(list);
+                });
             }
         }
-        function buildVPresenter(view, url, parent, inited) {
+        function buildVPresenter(view, url) {
             if (!isVPView(view)) {
                 console.log(view);
                 throw "is not a VPView";
@@ -507,39 +627,37 @@ define(["require", "exports"], function (require, exports) {
                 var result = syncRequire(conPath);
                 if (result instanceof Promise) {
                     return result.then(function (data) {
-                        return initVPresenter(data, view, url, parent, inited);
+                        return initVPresenter(data, view, url);
                     });
                 }
                 else {
-                    return initVPresenter(result, view, url, parent, inited);
+                    return initVPresenter(result, view, url);
                 }
             }
             else {
-                return initVPresenter(VPresenter, view, url, parent, inited);
+                return initVPresenter(VPresenter, view, url);
             }
         }
-        function returnResult(view, url, parent, inited) {
+        function returnResult(view, url) {
             if (view) {
-                return buildVPresenter(view, url, parent, inited);
+                return buildVPresenter(view, url);
             }
             else if (url) {
                 var result = syncRequire(url);
                 if (result instanceof Promise) {
                     return result.then(function (data) {
-                        return buildVPresenter(buildView(data), url, parent, inited);
+                        return buildVPresenter(buildView(data), url);
                     });
                 }
                 else {
-                    return buildVPresenter(buildView(result), url, parent, inited);
+                    return buildVPresenter(buildView(result), url);
                 }
             }
             else {
                 throw 'not found view and url !';
             }
         }
-        return function (data, parent, inited) {
-            if (parent === void 0) { parent = undefined; }
-            if (inited === void 0) { inited = true; }
+        return function (data) {
             var url;
             var id;
             var view;
@@ -552,7 +670,7 @@ define(["require", "exports"], function (require, exports) {
                 id = data;
             }
             url = id;
-            id = id.split("?")[0].replace(/\/+$/, "");
+            id = id.substr(0, id.indexOf("?")).replace(/\/+$/, "");
             var cacheData = VPresenterStore[id];
             if (cacheData instanceof VPresenter) {
                 return cacheData;
@@ -561,28 +679,24 @@ define(["require", "exports"], function (require, exports) {
                 return cacheData;
             }
             else {
-                var result = returnResult(view, url, parent, inited);
+                var result = returnResult(view, url);
+                VPresenterStore[id] = result;
                 if (result instanceof Promise) {
-                    VPresenterStore[id] = result;
+                    taskCounter.addItem(result, 'load:' + url);
                     result['catch'](function (error) {
                         delete VPresenterStore[id];
                         console.log(url + ":" + error);
                     });
-                    taskCounter.addItem(result, 'load:' + url);
                 }
                 return result;
             }
         };
     })(VPresenterStore);
-    function syncGetVPresenter(data, parent, inited) {
-        if (parent === void 0) { parent = undefined; }
-        if (inited === void 0) { inited = true; }
+    function syncGetVPresenter(data) {
         return exports.getVPresenter(data);
     }
     exports.syncGetVPresenter = syncGetVPresenter;
-    function asyncGetVPresenter(data, parent, inited) {
-        if (parent === void 0) { parent = undefined; }
-        if (inited === void 0) { inited = true; }
+    function asyncGetVPresenter(data) {
         var result = exports.getVPresenter(data);
         if (result instanceof Promise) {
             return result;
@@ -592,6 +706,96 @@ define(["require", "exports"], function (require, exports) {
         }
     }
     exports.asyncGetVPresenter = asyncGetVPresenter;
+    // export function getVPresenter<T>(data: string | VPView, successCallback?: (vp: T) => void, failueCallback?: (error: Error) => void): T | Promise<T> {
+    //     let url: string;
+    //     let id: string;
+    //     let view: VPView | null;
+    //     if (typeof data != "string") {
+    //         view = data;
+    //         id = data.getVPID();
+    //     } else {
+    //         view = null;
+    //         id = data;
+    //     }
+    //     url = id;
+    //     id = id.substr(0, id.indexOf("?")).replace(/\/+$/, "");
+    //     let cacheData: Promise<T> | T | null = VPresenterStore[id] as any;
+    //     if (cacheData instanceof VPresenter) {
+    //         return cacheData as T;
+    //     } else if (cacheData instanceof Promise) {
+    //         let success: (vp: any) => void = successCallback || function (VP: any) { };
+    //         let failue: (error: Error) => void = failueCallback || function (error: Error) { };
+    //         cacheData.then(success, failue);
+    //         return cacheData;
+    //     }
+    //     let onError = function (error: Error, reject: (error: Error) => void) {
+    //         delete VPresenterStore[id];
+    //         failueCallback && failueCallback(error);
+    //         console.log(error);
+    //         reject(error);
+    //     }
+    //     let onSuccess = function (con: Function, dom: VPView, resolve: (vp: T) => void, reject: (error: Error) => void) {
+    //         let vp: VPresenter | null = null;
+    //         try {
+    //             vp = new (con as any)(dom, undefined, url);
+    //         } catch (e) {
+    //             onError(e, reject);
+    //         }
+    //         if (vp) {
+    //             Promise.all(dom.getSUBS().map(function (dom) {
+    //                 let arr = dom.getVPID().split("?");
+    //                 let id = arr[0].replace(/\/+$/, "");
+    //                 if (VPresenterStore[id]) {
+    //                     arr[0] += "/" + (++autoID);
+    //                     dom.setVPID(arr.join("?"));
+    //                 }
+    //                 return getVPresenter(dom);
+    //             })).then(
+    //                 function (list) {
+    //                     return vp && vp.init(list as any);
+    //                 }
+    //                 ).then(
+    //                 function () {
+    //                     successCallback && successCallback(vp as any);
+    //                     resolve(vp as any);
+    //                 }
+    //                 )['catch'](function (e) {
+    //                     onError(e, reject);
+    //                 })
+    //         }
+    //     }
+    //     let promise = new Promise<T>(function (resolve, reject) {
+    //         let init = function (dom: VPView) {
+    //             let conPath = dom.getVPCON();
+    //             if (conPath) {
+    //                 require([conPath], function (con: Function) {
+    //                     onSuccess(con, dom, resolve, reject);
+    //                 }, function (err) {
+    //                     onError(err, reject);
+    //                 })
+    //             } else {
+    //                 onSuccess(VPresenter, dom, resolve, reject);
+    //             }
+    //         }
+    //         if (view) {
+    //             init(view);
+    //         } else {
+    //             require([url], function (obj: string | VPView) {
+    //                 if (typeof obj == "string") {
+    //                     view = createVPView(obj);
+    //                 } else {
+    //                     view = obj;
+    //                 }
+    //                 init(view);
+    //             }, function (err) {
+    //                 onError(err, reject);
+    //             })
+    //         }
+    //     });
+    //     VPresenterStore[id] = promise as any;
+    //     taskCounter.addItem(promise, 'load:' + url);
+    //     return promise;
+    // }
     var DialogState;
     (function (DialogState) {
         DialogState[DialogState["Focused"] = 0] = "Focused";
@@ -599,29 +803,20 @@ define(["require", "exports"], function (require, exports) {
         DialogState[DialogState["Closed"] = 2] = "Closed";
     })(DialogState = exports.DialogState || (exports.DialogState = {}));
     ;
-    exports.DialogEffect = {
-        scale: "scale"
-    };
-    exports.DialogPosition = {
-        left: "left",
-        right: "right",
-        center: "center",
-        top: "top",
-        bottom: "bottom",
-        middle: "middle",
-    };
-    var DialogConfig = {
-        className: '',
-        masked: false,
-        fixedBackground: true,
-        x: exports.DialogPosition.center,
-        y: exports.DialogPosition.middle,
-        width: "50%",
-        height: "50%",
-        offsetX: "",
-        offsetY: "",
-        effect: exports.DialogEffect.scale
-    };
+    var DialogPosition;
+    (function (DialogPosition) {
+        DialogPosition[DialogPosition["Left"] = 0] = "Left";
+        DialogPosition[DialogPosition["Center"] = 1] = "Center";
+        DialogPosition[DialogPosition["Right"] = 2] = "Right";
+        DialogPosition[DialogPosition["Top"] = 3] = "Top";
+        DialogPosition[DialogPosition["Middle"] = 4] = "Middle";
+        DialogPosition[DialogPosition["Bottom"] = 5] = "Bottom";
+    })(DialogPosition = exports.DialogPosition || (exports.DialogPosition = {}));
+    var DialogSize;
+    (function (DialogSize) {
+        DialogSize[DialogSize["Content"] = 0] = "Content";
+        DialogSize[DialogSize["Full"] = 1] = "Full";
+    })(DialogSize = exports.DialogSize || (exports.DialogSize = {}));
     var Dialog = (function (_super) {
         __extends(Dialog, _super);
         function Dialog(els, config) {
@@ -631,14 +826,20 @@ define(["require", "exports"], function (require, exports) {
             _this.content = null;
             _this._dialogList = [];
             _this._zindex = -1;
-            _this.config = DialogConfig;
+            _this.config = {
+                className: '',
+                masked: false,
+                position: { x: DialogPosition.Center, y: DialogPosition.Middle },
+                size: { width: "50%", height: "50%" },
+                fixed: true,
+                offset: { x: 0, y: 0 },
+                effect: "",
+                bodyEffect: ""
+            };
             _this.dialog = els.dialog;
             _this.mask = els.mask;
             _this.body = els.body;
-            _this.view.addClass("pt-layer pt-" + DialogState[_this.state]);
-            _this.dialog.addClass("pt-dialog");
-            _this.mask.addClass("pt-mask");
-            _this.body.addClass("pt-body");
+            _this.view.addClass("pt-" + DialogState[_this.state]);
             if (config) {
                 _this.setConfig(config);
             }
@@ -667,24 +868,9 @@ define(["require", "exports"], function (require, exports) {
             }
             return dialog;
         };
-        Dialog.prototype.eachDialogChildren = function (callback, andSelf) {
-            if (andSelf) {
-                callback(this);
-            }
-            if (this._dialogList.length) {
-                this._dialogList.forEach(function (child) {
-                    child.eachDialogChildren(callback, true);
-                });
-            }
-        };
         Dialog.prototype._afterConfigChange = function (oldConfig) {
-            this.dialog.removeClass(oldConfig.className);
-            this.mask.removeClass(oldConfig.className);
-            this.view.removeClass(["pt-" + oldConfig.effect, (oldConfig.masked ? "pt-masked" : "")].join(" "));
-            var config = this.config;
-            this.dialog.addClass(config.className);
-            this.mask.addClass(config.className);
-            this.view.addClass(["pt-" + config.effect, (config.masked ? "pt-masked" : "")].join(" "));
+            this.view.removeClass([oldConfig.className, oldConfig.effect, oldConfig.masked ? "pt-masked" : ""].join(" "));
+            this.view.addClass([this.config.className, this.config.effect, this.config.masked ? "pt-masked" : ""].join(" "));
         };
         Dialog.prototype._setZIndex = function (i) {
             this._zindex = i;
@@ -808,6 +994,10 @@ define(["require", "exports"], function (require, exports) {
                 var curState = this.state;
                 this._setState(DialogState.Focused);
                 if (curState == DialogState.Closed) {
+                    this._resizeX(this);
+                    this._resizeY(this);
+                    this._resizeWidth(this);
+                    this._resizeHeight(this);
                 }
                 this._afterFocus();
                 if (!_parentCall) {
@@ -840,6 +1030,10 @@ define(["require", "exports"], function (require, exports) {
                 this._countIndex();
             }
             this._setZIndex(-1);
+            this._resizeX(this);
+            this._resizeY(this);
+            this._resizeWidth(this);
+            this._resizeHeight(this);
             this._setState(DialogState.Closed);
             this._afterClose();
             this.dispatch(new PEvent(exports.DialogEvent.Closed));
@@ -879,8 +1073,6 @@ define(["require", "exports"], function (require, exports) {
             }
             return true;
         };
-        Dialog.prototype.onWindowResize = function (e) {
-        };
         Dialog.prototype.appendChild = function (child) {
             if (child.parent == this) {
                 return false;
@@ -919,6 +1111,30 @@ define(["require", "exports"], function (require, exports) {
                 this.body.removeChild(member.view);
             }
         };
+        Dialog.prototype._resizeX = function (target) {
+            if ((target != this && target instanceof Dialog) || this.state == DialogState.Closed) {
+                return;
+            }
+            _super.prototype._resizeX.call(this, target);
+        };
+        Dialog.prototype._resizeY = function (target) {
+            if ((target != this && target instanceof Dialog) || this.state == DialogState.Closed) {
+                return;
+            }
+            _super.prototype._resizeY.call(this, target);
+        };
+        Dialog.prototype._resizeWidth = function (target) {
+            if ((target != this && target instanceof Dialog) || this.state == DialogState.Closed) {
+                return;
+            }
+            _super.prototype._resizeWidth.call(this, target);
+        };
+        Dialog.prototype._resizeHeight = function (target) {
+            if ((target != this && target instanceof Dialog) || this.state == DialogState.Closed) {
+                return;
+            }
+            _super.prototype._resizeHeight.call(this, target);
+        };
         return Dialog;
     }(VPresenter));
     exports.Dialog = Dialog;
@@ -927,7 +1143,6 @@ define(["require", "exports"], function (require, exports) {
         function Application(rootUri, els, config) {
             var _this = _super.call(this, els, config) || this;
             _this.initTime = Date.now();
-            _this.view.removeClass("pt-layer").addClass("pt-application");
             _this._setZIndex(0);
             _this._setState(DialogState.Focused);
             _this.view.addClass("pt-topDialog");
@@ -1548,17 +1763,6 @@ define(["require", "exports"], function (require, exports) {
         }, 0);
     }
     exports.initHistory = initHistory;
-    var resizeTimer;
-    bindEventListener(window, 'resize', function (e) {
-        if (!resizeTimer) {
-            resizeTimer = setTimeout(function () {
-                resizeTimer = null;
-                application.eachDialogChildren(function (item) {
-                    item.onWindowResize(e);
-                }, true);
-            }, 200);
-        }
-    });
     function setConfig(data) {
         if (data.namespace) {
             exports.namespace = namespace = data.namespace;
@@ -1588,4 +1792,8 @@ define(["require", "exports"], function (require, exports) {
         return _topDialog;
     }
     exports.getTopDialog = getTopDialog;
+    function bootstrap(application) {
+        application = application;
+    }
+    exports.bootstrap = bootstrap;
 });

@@ -46,15 +46,9 @@ export const VPresenterEvent = {
     Installed: "CPresenterEvent.Installed",
     Uninstalled: "CPresenterEvent.Uninstalled",
     ChildAppended: "CPresenterEvent.ChildAppended",
-    ChildRemoved: "CPresenterEvent.ChildRemoved",
-    Resized: "CPresenterEvent.Resized"
+    ChildRemoved: "CPresenterEvent.ChildRemoved"
 }
 
-export enum PropState {
-    Invalid,
-    Computing,
-    Updated,
-}
 export const VPresenterTransaction = {
     AllowInstall: "AllowInstall"
 }
@@ -73,8 +67,6 @@ export const CmdEvent = {
     Complete: "CmdEvent.Complete",
     Overflow: "CmdEvent.Overflow"
 }
-
-export enum SizeDependOn { children, parent }
 
 export class PEvent {
     readonly target: PDispatcher;
@@ -104,19 +96,6 @@ function emptyObject<T>(obj: any): T {
         delete obj[key];
     })
     return obj;
-}
-
-let _invalidLayoutTimer: number = 0;
-
-export function invalidProp(vp: VPresenter) {
-    if (!_invalidLayoutTimer) {
-        _invalidLayoutTimer = setTimeout(function () {
-            _invalidLayoutTimer = 0;
-            application.eachChildren(function(vp){
-                vp.updateProp();
-            })
-        }, 0) as any;
-    }
 }
 
 export class PDispatcher {
@@ -248,45 +227,13 @@ let createVPView: (data: any) => VPView = function (data: any): VPView {
 export class VPresenter extends PDispatcher {
     public readonly parent: VPresenter | undefined;
     public readonly children: VPresenter[] = [];
-    public readonly vpid:string = "";
-    public readonly initialization:Promise<this>|null;
+    
 
-    protected _propState:{[prop:string]:PropState} = {};
-    protected _propValue:{[prop:string]:any} = {};
-    protected _widthDependOn: SizeDependOn | undefined;
-    protected _heightDependOn: SizeDependOn | undefined;
-
-
-    constructor(public readonly view: VPView, parent?: VPresenter, vpid?: string) {
+    constructor(public readonly view: VPView, parent?: VPresenter, public vpid?: string) {
         super(parent);
-        if(vpid){
-            this.vpid = vpid.split("?")[0].replace(/\/+$/, "");
-        }
-        if (this.vpid) {
-            VPresenterStore[this.vpid] = this;
-        }
-        this.initialization = this._init();
     }
-    protected _init(): Promise<this> | null {
-        let hasPromise:boolean = false;
-        let list = this.view.getSUBS().map((view) => {
-            let result = getVPresenter(view,this,true);
-            if (!hasPromise && result instanceof Promise) {
-                hasPromise = true;
-            }
-            return result;
-        });
-        if (!list.length || !hasPromise) {
-            (this.children as any).push(...list);
-            return null;
-        } else {
-            return Promise.all(list).then(
-                (list) => {
-                    (this.children as any).push(...list);
-                    return this;
-                }
-            )
-        }
+    init(subs: VPresenter[]): Promise<this> | this {
+        return this;
     }
     protected _allowInstallTo(parent: VPresenter): boolean {
         return true;
@@ -385,7 +332,7 @@ export class VPresenter extends PDispatcher {
     }
     destroy(): void {
         if (this.vpid) {
-            delete VPresenterStore[this.vpid];
+            delete VPresenterStore[this.vpid.substr(0, this.vpid.indexOf("?")).replace(/\/+$/, "")];
         }
     }
     eachChildren(callback: (item: VPresenter) => void, andSelf?: boolean) {
@@ -398,184 +345,6 @@ export class VPresenter extends PDispatcher {
             });
         }
     }
-    invalidProp(prop:string){
-        if (this._propState[prop] == PropState.Invalid) {
-            return;
-        }
-        this._propState[prop] = PropState.Invalid;
-        invalidProp(this);
-    }
-    getProp(prop:string, ovalue?:boolean):any{
-        let value = this._propState[prop];
-        if(value==PropState.Invalid){
-            if(ovalue){
-                return this._propValue[prop];
-            }else{
-                throw this.vpid+'.'+prop+' is invalid';
-            }
-        }else if(value==PropState.Computing){
-            if(ovalue){
-                return this._propValue[prop];
-            }else{
-                throw this.vpid+'.'+prop+' is loop dependency';
-            }
-        }else if(value==PropState.Updated){
-            this._propState[prop] = PropState.Computing;
-            this._propValue[prop]  = this._computeProp(prop);
-            delete this._propState[prop];
-            return this._propValue[prop];
-        }else{
-            return this._propValue[prop];
-        }
-    }
-    protected _computeProp(prop:string):any{
-        return '';
-    }
-    public updateProp() {
-        for(let key in this._propState){
-            if(this._propState[key] == PropState.Invalid){
-                this._propState[key] = PropState.Updated;
-            }
-        }
-    }
-    // protected _resizeX(target: VPresenter = this) {
-    //     if (this._internalSize.x == LayoutState.Invalid) {
-    //         return;
-    //     }
-    //     if (target == this) {
-    //         invalidLayout(this);
-    //         this._internalSize.x = LayoutState.Invalid;
-    //         this.parent && this.parent._resizeX(this);
-    //     } else if (target == this.parent) {
-
-    //     } else if (target.parent == this) {
-    //         if (this._widthDependOn == SizeDependOn.children) {
-    //             this._resizeWidth(target);
-    //         }
-    //     }
-    // }
-    // protected _resizeY(target: VPresenter = this) {
-    //     if (this._internalSize.y == LayoutState.Invalid) {
-    //         return;
-    //     }
-    //     if (target == this) {
-    //         invalidLayout(this);
-    //         this._internalSize.y = LayoutState.Invalid;
-    //         this.parent && this.parent._resizeY(this);
-    //     } else if (target == this.parent) {
-
-    //     } else if (target.parent == this) {
-    //         if (this._heightDependOn == SizeDependOn.children) {
-    //             this._resizeHeight(target);
-    //         }
-    //     }
-    // }
-    // protected _resizeWidth(target: VPresenter = this) {
-    //     if (this._internalSize.width == LayoutState.Invalid) {
-    //         return;
-    //     }
-    //     if (target == this) {
-    //         invalidLayout(this);
-    //         this._internalSize.width = LayoutState.Invalid;
-    //         this.parent && this.parent._resizeWidth(this);
-    //         this.children.length && this.children.forEach(function (child) {
-    //             child._resizeWidth(this);
-    //         })
-    //     } else if (target == this.parent) {
-    //         if (this._widthDependOn = SizeDependOn.parent) {
-    //             invalidLayout(this);
-    //             this._internalSize.width = LayoutState.Invalid;
-    //             this.children.length && this.children.forEach(function (child) {
-    //                 child._resizeWidth(this);
-    //             })
-    //         }
-    //     } else if (target.parent == this) {
-    //         if (this._widthDependOn == SizeDependOn.children) {
-    //             invalidLayout(this);
-    //             this._internalSize.width = LayoutState.Invalid;
-    //             this.parent && this.parent._resizeWidth(this);
-    //         }
-    //     }
-    // }
-    // protected _resizeHeight(target: VPresenter = this) {
-    //     if (this._internalSize.height == LayoutState.Invalid) {
-    //         return;
-    //     }
-    //     if (target == this) {
-    //         invalidLayout(this);
-    //         this._internalSize.height = LayoutState.Invalid;
-    //         this.parent && this.parent._resizeHeight(this);
-    //         this.children.length && this.children.forEach(function (child) {
-    //             child._resizeHeight(this);
-    //         })
-    //     } else if (target == this.parent) {
-    //         if (this._widthDependOn = SizeDependOn.parent) {
-    //             invalidLayout(this);
-    //             this._internalSize.height = LayoutState.Invalid;
-    //             this.children.length && this.children.forEach(function (child) {
-    //                 child._resizeHeight(this);
-    //             })
-    //         }
-    //     } else if (target.parent == this) {
-    //         if (this._heightDependOn == SizeDependOn.children) {
-    //             invalidLayout(this);
-    //             this._internalSize.height = LayoutState.Invalid;
-    //             this.parent && this.parent._resizeHeight(this);
-    //         }
-    //     }
-    // }
-    // protected _computeX(): number {
-    //     return 0;
-    // }
-    // protected _computeY(): number {
-    //     return 0;
-    // }
-    // protected _computeWidth(): number {
-    //     return 0;
-    // }
-    // protected _computeHeight(): number {
-    //     return 0;
-    // }
-    // public getX(): number {
-    //     let size = this._internalSize;
-    //     if(size.x==LayoutState.Computing){
-    //         throw this.vpid+'.x is loop dependency';
-    //     }else if(size.x==LayoutState.Invalid || size.x==LayoutState.Updated){
-    //         size.x = LayoutState.Computing;
-    //         size.x = this._computeX();
-    //     }
-    //     return size.y as number;
-    // }
-    // public getY(original:boolean=false): number {
-    //     let size = this._internalSize;
-    //     if(size.y==LayoutState.Computing){
-    //         throw this.vpid+'.y is loop dependency';
-    //     }else if(size.y==LayoutState.Invalid || size.y==LayoutState.Updated){
-    //         size.y = LayoutState.Computing;
-    //         size.y = this._computeY();
-    //     }
-    //     return size.y as number;
-    // }
-    // public getWidth(original:boolean=false): number {
-    //     let size = this._internalSize;
-    //     if(size.width==LayoutState.Computing){
-    //         throw this.vpid+'.width is loop dependency';
-    //     }else if(size.width==LayoutState.Invalid || size.width==LayoutState.Updated){
-    //         size.width = LayoutState.Computing;
-    //         size.width = this._computeWidth();
-    //     }
-    //     return size.width as number;
-    // }
-    // public getHeight(original:boolean=false): number {
-    //     let size = this._internalSize;
-    //     if(size.height==LayoutState.Computing){
-    //         throw this.vpid+'.height is loop dependency';
-    //     }else if(size.height==LayoutState.Invalid || size.height==LayoutState.Updated){
-    //         size.height = LayoutState.Computing;
-    //         size.height = this._computeHeight();
-    //     }
-    //     return size.height as number;
-    // }
     
 }
 
@@ -600,19 +369,34 @@ export let getVPresenter = (function (VPresenterStore) {
     function buildView(data: any): VPView {
         return createVPView(data);
     }
-    function initVPresenter(con: Function, view: VPView, url: string, parent:VPresenter|undefined,inited:boolean): VPresenter | Promise<VPresenter> {
-        let vp: VPresenter = new (con as any)(view, parent, url);
-        if(inited){
-            if(vp.initialization){
-                return vp.initialization;
-            }else{
-                return vp;
+    function initVPresenter(con: Function, view: VPView, url: string): VPresenter | Promise<VPresenter> {
+        let vp: VPresenter = new (con as any)(view, undefined, url);
+        let hasPromise: boolean = false;
+        let list = view.getSUBS().map(function (view) {
+            let arr = view.getVPID().split("?");
+            let id = arr[0].replace(/\/+$/, "");
+            let result = getVPresenter(view);
+            if (!hasPromise && result instanceof Promise) {
+                hasPromise = true;
             }
-        }else{
-            return vp;
+            return result;
+            // if (VPresenterStore[id]) {
+            //     arr[0] += "/" + (++autoID);
+            //     view.setVPID(arr.join("?"));
+            // }
+
+        });
+        if (!list.length || !hasPromise) {
+            return vp.init(list as any);
+        } else {
+            return Promise.all(list).then(
+                function (list) {
+                    return vp.init(list as any);
+                }
+            )
         }
     }
-    function buildVPresenter(view: VPView, url: string, parent:VPresenter|undefined,inited:boolean): VPresenter | Promise<VPresenter> {
+    function buildVPresenter(view: VPView, url: string): VPresenter | Promise<VPresenter> {
         if (!isVPView(view)) {
             console.log(view);
             throw "is not a VPView";
@@ -622,33 +406,33 @@ export let getVPresenter = (function (VPresenterStore) {
             let result = syncRequire(conPath);
             if (result instanceof Promise) {
                 return result.then(function (data) {
-                    return initVPresenter(data, view, url,parent,inited);
+                    return initVPresenter(data, view, url);
                 })
             } else {
-                return initVPresenter(result, view, url,parent,inited);
+                return initVPresenter(result, view, url);
             }
         } else {
-            return initVPresenter(VPresenter, view, url,parent,inited);
+            return initVPresenter(VPresenter, view, url);
         }
     }
 
-    function returnResult(view: VPView | null, url: string, parent:VPresenter|undefined,inited:boolean): VPresenter | Promise<VPresenter> {
+    function returnResult(view: VPView | null, url: string): VPresenter | Promise<VPresenter> {
         if (view) {
-            return buildVPresenter(view, url, parent, inited);
+            return buildVPresenter(view, url);
         } else if (url) {
             let result = syncRequire(url);
             if (result instanceof Promise) {
                 return result.then(function (data) {
-                    return buildVPresenter(buildView(data), url, parent, inited);
+                    return buildVPresenter(buildView(data), url);
                 })
             } else {
-                return buildVPresenter(buildView(result), url, parent, inited);
+                return buildVPresenter(buildView(result), url);
             }
         } else {
             throw 'not found view and url !'
         }
     }
-    return function (data: string | VPView, parent:VPresenter|undefined = undefined, inited:boolean=true): VPresenter | Promise<VPresenter> {
+    return function (data: string | VPView): VPresenter | Promise<VPresenter> {
         let url: string;
         let id: string;
         let view: VPView | null;
@@ -660,21 +444,21 @@ export let getVPresenter = (function (VPresenterStore) {
             id = data;
         }
         url = id;
-        id = id.split("?")[0].replace(/\/+$/, "");
+        id = id.substr(0, id.indexOf("?")).replace(/\/+$/, "");
         let cacheData: Promise<VPresenter> | VPresenter | null = VPresenterStore[id];
         if (cacheData instanceof VPresenter) {
             return cacheData;
         } else if (cacheData instanceof Promise) {
             return cacheData;
         } else {
-            let result = returnResult(view, url, parent, inited);
+            let result = returnResult(view, url);
+            VPresenterStore[id] = result;
             if (result instanceof Promise) {
-                VPresenterStore[id] = result;
+                taskCounter.addItem(result, 'load:' + url);
                 result['catch'](function (error) {
                     delete VPresenterStore[id];
                     console.log(url + ":" + error);
                 })
-                taskCounter.addItem(result, 'load:' + url);
             }
             return result;
         }
@@ -682,10 +466,10 @@ export let getVPresenter = (function (VPresenterStore) {
 
 })(VPresenterStore)
 
-export function syncGetVPresenter<T>(data: string | VPView, parent:VPresenter|undefined = undefined, inited:boolean=true): T {
+export function syncGetVPresenter<T>(data: string | VPView): T {
     return getVPresenter(data) as any;
 }
-export function asyncGetVPresenter<T>(data: string | VPView, parent:VPresenter|undefined = undefined, inited:boolean=true): Promise<T> {
+export function asyncGetVPresenter<T>(data: string | VPView): Promise<T> {
     let result = getVPresenter(data);
     if (result instanceof Promise) {
         return result as any;
@@ -693,75 +477,132 @@ export function asyncGetVPresenter<T>(data: string | VPView, parent:VPresenter|u
         return Promise.resolve(result as any);
     }
 }
+// export function getVPresenter<T>(data: string | VPView, successCallback?: (vp: T) => void, failueCallback?: (error: Error) => void): T | Promise<T> {
+//     let url: string;
+//     let id: string;
+//     let view: VPView | null;
+//     if (typeof data != "string") {
+//         view = data;
+//         id = data.getVPID();
+//     } else {
+//         view = null;
+//         id = data;
+//     }
+//     url = id;
+//     id = id.substr(0, id.indexOf("?")).replace(/\/+$/, "");
+//     let cacheData: Promise<T> | T | null = VPresenterStore[id] as any;
+//     if (cacheData instanceof VPresenter) {
+//         return cacheData as T;
+//     } else if (cacheData instanceof Promise) {
+//         let success: (vp: any) => void = successCallback || function (VP: any) { };
+//         let failue: (error: Error) => void = failueCallback || function (error: Error) { };
+//         cacheData.then(success, failue);
+//         return cacheData;
+//     }
+//     let onError = function (error: Error, reject: (error: Error) => void) {
+//         delete VPresenterStore[id];
+//         failueCallback && failueCallback(error);
+//         console.log(error);
+//         reject(error);
+//     }
+//     let onSuccess = function (con: Function, dom: VPView, resolve: (vp: T) => void, reject: (error: Error) => void) {
+//         let vp: VPresenter | null = null;
+//         try {
+//             vp = new (con as any)(dom, undefined, url);
+//         } catch (e) {
+//             onError(e, reject);
+//         }
+//         if (vp) {
+//             Promise.all(dom.getSUBS().map(function (dom) {
+//                 let arr = dom.getVPID().split("?");
+//                 let id = arr[0].replace(/\/+$/, "");
+//                 if (VPresenterStore[id]) {
+//                     arr[0] += "/" + (++autoID);
+//                     dom.setVPID(arr.join("?"));
+//                 }
+//                 return getVPresenter(dom);
+//             })).then(
+//                 function (list) {
+//                     return vp && vp.init(list as any);
+//                 }
+//                 ).then(
+//                 function () {
+//                     successCallback && successCallback(vp as any);
+//                     resolve(vp as any);
+//                 }
+//                 )['catch'](function (e) {
+//                     onError(e, reject);
+//                 })
+//         }
+//     }
 
-export interface ILayerView extends VPView {
+//     let promise = new Promise<T>(function (resolve, reject) {
+//         let init = function (dom: VPView) {
+//             let conPath = dom.getVPCON();
+//             if (conPath) {
+//                 require([conPath], function (con: Function) {
+//                     onSuccess(con, dom, resolve, reject);
+//                 }, function (err) {
+//                     onError(err, reject);
+//                 })
+//             } else {
+//                 onSuccess(VPresenter, dom, resolve, reject);
+//             }
+//         }
+//         if (view) {
+//             init(view);
+//         } else {
+//             require([url], function (obj: string | VPView) {
+//                 if (typeof obj == "string") {
+//                     view = createVPView(obj);
+//                 } else {
+//                     view = obj;
+//                 }
+//                 init(view);
+//             }, function (err) {
+//                 onError(err, reject);
+//             })
+//         }
+
+//     });
+//     VPresenterStore[id] = promise as any;
+//     taskCounter.addItem(promise, 'load:' + url);
+//     return promise;
+// }
+
+export enum DialogState { Focused, Blured, Closed };
+export enum DialogPosition { Left, Center, Right, Top, Middle, Bottom }
+
+export interface LayerView extends VPView {
     setZIndex(index: number): void;
 }
 
-export enum DialogState { Focused, Blured, Closed };
-
-export interface IDialogEffect{
-    scale : string;
-}
-export interface IDialogPosition{
-    left : string,
-    right : string,
-    center : string,
-    top : string,
-    bottom : string,
-    middle : string,
-}
-export interface IDialogConfig {
+export type DialogRefer = string | number | Object | [Object, string] | ((dialog: Dialog) => number);
+export interface DialogConfig {
     className: string;
     masked: boolean;
-    fixedBackground: boolean;
-    x: string;
-    y: string;
-    width: string;
-    height: string;
-    offsetX: string;
-    offsetY: string;
+    fixed: boolean;
+    position: { x: DialogPosition | DialogRefer, y: DialogPosition | DialogRefer };
+    size: { width: DialogRefer , height: DialogRefer };
+    offset: { x: DialogRefer, y: DialogRefer };
     effect: string;
+    bodyEffect: string;
 }
-export interface IDialogConfigOptions {
+export interface DialogConfigOptions {
     className?: string;
     masked?: boolean;
-    fixedBackground?: boolean;
-    x?: string;
-    y?: string;
-    width?: string;
-    height?: string;
-    offsetX?: string;
-    offsetY?: string;
+    fixed?: boolean;
+    position?: { x: DialogPosition | DialogRefer, y: DialogPosition | DialogRefer };
+    size?: { width: DialogRefer, height: DialogRefer };
+    offset?: { x: DialogRefer, y: DialogRefer };
     effect?: string;
+    bodyEffect?: string;
 }
-export let  DialogEffect:IDialogEffect = {
-    scale : "scale"
-}
-export let  DialogPosition:IDialogPosition = {
-    left : "left",
-    right : "right",
-    center : "center",
-    top : "top",
-    bottom : "bottom",
-    middle : "middle",
-}
-let DialogConfig:IDialogConfig = {
-    className: '',
-    masked: false,
-    fixedBackground: true,
-    x: DialogPosition.center,
-    y: DialogPosition.middle,
-    width: "50%",
-    height: "50%",
-    offsetX: "",
-    offsetY: "",
-    effect: DialogEffect.scale
-}
+
 export abstract class Dialog extends VPresenter {
     public readonly history = new History();
     public readonly parent: Dialog | undefined;
-    public readonly view: ILayerView;
+    public readonly view: LayerView;
     public readonly state: DialogState = DialogState.Closed;
     public readonly content: VPresenter | null = null;
     public readonly dialog: View;
@@ -771,19 +612,24 @@ export abstract class Dialog extends VPresenter {
     private _zindex: number = -1;
 
 
-    public readonly config: IDialogConfig = DialogConfig;
+    public readonly config: DialogConfig = {
+        className: '',
+        masked: false,
+        position: { x: DialogPosition.Center, y: DialogPosition.Middle },
+        size: { width: "50%", height: "50%" },
+        fixed: true,
+        offset: { x: 0, y: 0 },
+        effect: "",
+        bodyEffect: ""
+    }
 
-    constructor(els: { view: ILayerView, dialog: View, mask: View, body: View }, config?: IDialogConfigOptions) {
+    constructor(els: { view: LayerView, dialog: View, mask: View, body: View }, config?: DialogConfigOptions) {
         super(els.view, undefined);
         this.dialog = els.dialog;
         this.mask = els.mask;
         this.body = els.body;
 
-        this.view.addClass("pt-layer pt-" + DialogState[this.state]);
-        this.dialog.addClass("pt-dialog");
-        this.mask.addClass("pt-mask");
-        this.body.addClass("pt-body");
-
+        this.view.addClass("pt-" + DialogState[this.state]);
         if (config) {
             this.setConfig(config);
         }
@@ -794,7 +640,7 @@ export abstract class Dialog extends VPresenter {
     protected _onHistoryOverflow(e) {
         this.close();
     }
-    setConfig(config: IDialogConfigOptions) {
+    setConfig(config: DialogConfigOptions) {
         let oldConfig = this.config;
         (this as any).config = assignObject({}, this.config, config);
         this._afterConfigChange(oldConfig);
@@ -811,24 +657,9 @@ export abstract class Dialog extends VPresenter {
         }
         return dialog;
     }
-    eachDialogChildren(callback: (item: Dialog) => void, andSelf?: boolean) {
-        if (andSelf) {
-            callback(this);
-        }
-        if (this._dialogList.length) {
-            this._dialogList.forEach(function (child) {
-                child.eachDialogChildren(callback, true);
-            });
-        }
-    }
-    protected _afterConfigChange(oldConfig: IDialogConfig) {
-        this.dialog.removeClass(oldConfig.className);
-        this.mask.removeClass(oldConfig.className);
-        this.view.removeClass(["pt-"+oldConfig.effect,(oldConfig.masked?"pt-masked":"")].join(" "));
-        let config = this.config;
-        this.dialog.addClass(config.className);
-        this.mask.addClass(config.className);
-        this.view.addClass(["pt-"+config.effect,(config.masked?"pt-masked":"")].join(" "));
+    protected _afterConfigChange(oldConfig: DialogConfig) {
+        this.view.removeClass([oldConfig.className, oldConfig.effect, oldConfig.masked ? "pt-masked" : "", oldConfig.fixed? "pt-fixed":""].join(" "));
+        this.view.addClass([this.config.className, this.config.effect, this.config.masked ? "pt-masked" : "", this.config.fixed? "pt-fixed":""].join(" "));
     }
     protected _setZIndex(i: number): void {
         this._zindex = i;
@@ -942,7 +773,7 @@ export abstract class Dialog extends VPresenter {
             let curState = this.state;
             this._setState(DialogState.Focused);
             if (curState == DialogState.Closed) {
-                
+                this.updateLayout();
             }
             this._afterFocus();
             if (!_parentCall) {
@@ -974,6 +805,7 @@ export abstract class Dialog extends VPresenter {
         }
         this._setZIndex(-1);
         this._setState(DialogState.Closed);
+        this.updateLayout();
         this._afterClose();
         this.dispatch(new PEvent(DialogEvent.Closed));
         if (this.content) {
@@ -1009,9 +841,6 @@ export abstract class Dialog extends VPresenter {
         }
         return true;
     }
-    onWindowResize(e:Event){
-
-    }
     appendChild(child: VPresenter): boolean {
         if (child.parent == this) { return false; }
         if (!this._checkAppendChild(child)) {
@@ -1035,6 +864,7 @@ export abstract class Dialog extends VPresenter {
             this.view.appendChild(member.view);
         } else {
             this.body.appendChild(member.view);
+            this.updateLayout();
         }
     }
     protected _removeView(member: VPresenter): void {
@@ -1044,7 +874,11 @@ export abstract class Dialog extends VPresenter {
             this.body.removeChild(member.view);
         }
     }
-    
+    public updateLayout(){
+        if (this.state != DialogState.Closed) {
+
+        }
+    }
 }
 
 
@@ -1052,9 +886,8 @@ export abstract class Dialog extends VPresenter {
 export class Application extends Dialog {
 
     public initTime = Date.now();
-    constructor(rootUri: Cmd | null, els: { view: ILayerView, dialog: View, mask: View, body: View }, config?: IDialogConfigOptions) {
+    constructor(rootUri: Cmd | null, els: { view: LayerView, dialog: View, mask: View, body: View }, config?: DialogConfigOptions) {
         super(els, config);
-        this.view.removeClass("pt-layer").addClass("pt-application");
         this._setZIndex(0);
         this._setState(DialogState.Focused);
         this.view.addClass("pt-topDialog");
@@ -1070,7 +903,6 @@ export class Application extends Dialog {
         if (rootUri) {
             this._initHistory(this.initTime, rootUri);
         }
-        
     }
     private _initHistory(initTime: number, rootUri: Cmd) {
         let supportState = window.history.pushState ? true : false;
@@ -1660,18 +1492,6 @@ export function initHistory() {
 
 }
 
-let resizeTimer:any;
-bindEventListener(window, 'resize', function (e) {
-    if(!resizeTimer){
-        resizeTimer = setTimeout(function(){
-            resizeTimer = null;
-            application.eachDialogChildren(function(item){
-                item.onWindowResize(e);
-            },true)
-        },100);
-    }
-})
-
 export function setConfig(data: {
     namespace?: string,
     application?: Application,
@@ -1705,5 +1525,7 @@ function setTopDialog(dialog: Dialog) {
 export function getTopDialog(): Dialog {
     return _topDialog;
 }
-
+export function bootstrap(application: Application) {
+    application = application;
+}
 export { application, namespace, taskCounter };

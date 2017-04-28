@@ -12,11 +12,6 @@ export declare const VPresenterEvent: {
     ChildRemoved: string;
     Resized: string;
 };
-export declare enum PropState {
-    Invalid = 0,
-    Computing = 1,
-    Updated = 2,
-}
 export declare const VPresenterTransaction: {
     AllowInstall: string;
 };
@@ -60,7 +55,7 @@ export declare class PError extends Error {
     });
     getNamespace(): string;
 }
-export declare function invalidProp(vp: VPresenter): void;
+export declare function invalidLayout(vp: VPresenter): void;
 export declare class PDispatcher {
     readonly parent: PDispatcher | undefined;
     constructor(parent?: PDispatcher | undefined);
@@ -94,6 +89,10 @@ export interface View {
     appendChild(view: View): any;
     removeClass(className: string): any;
     addClass(className: string): any;
+    getX(): number;
+    getY(): number;
+    getWidth(): number;
+    getHeight(): number;
 }
 export interface VPView extends View {
     getVPID(): string;
@@ -103,20 +102,16 @@ export interface VPView extends View {
 }
 export declare class VPresenter extends PDispatcher {
     readonly view: VPView;
+    vpid: string;
     readonly parent: VPresenter | undefined;
     readonly children: VPresenter[];
-    readonly vpid: string;
-    readonly initialization: Promise<this> | null;
-    protected _propState: {
-        [prop: string]: PropState;
-    };
-    protected _propValue: {
-        [prop: string]: any;
-    };
-    protected _widthDependOn: SizeDependOn | undefined;
-    protected _heightDependOn: SizeDependOn | undefined;
+    readonly nid: string;
+    private _internalSize;
+    private _invalidSize;
+    private _widthDependOn;
+    private _heightDependOn;
     constructor(view: VPView, parent?: VPresenter, vpid?: string);
-    protected _init(): Promise<this> | null;
+    init(subs: VPresenter[]): Promise<this> | this;
     protected _allowInstallTo(parent: VPresenter): boolean;
     protected _allowUninstallTo(parent: VPresenter): boolean;
     protected _allowAppendChild(child: VPresenter): boolean;
@@ -138,63 +133,86 @@ export declare class VPresenter extends PDispatcher {
     appendChild(member: VPresenter, checked?: boolean): boolean;
     destroy(): void;
     eachChildren(callback: (item: VPresenter) => void, andSelf?: boolean): void;
-    invalidProp(prop: string): void;
-    getProp(prop: string, ovalue?: boolean): any;
-    protected _computeProp(prop: string): any;
-    updateProp(): void;
+    protected _resizeX(target?: VPresenter): void;
+    protected _resizeY(target?: VPresenter): void;
+    protected _resizeWidth(target?: VPresenter): void;
+    protected _resizeHeight(target?: VPresenter): void;
+    protected _computeX(): number;
+    protected _computeY(): number;
+    protected _computeWidth(): number;
+    protected _computeHeight(): number;
+    getX(original?: boolean): number;
+    getY(original?: boolean): number;
+    getWidth(original?: boolean): number;
+    getHeight(original?: boolean): number;
+    _updateLayout(): void;
 }
-export declare let getVPresenter: (data: string | VPView, parent?: VPresenter | undefined, inited?: boolean) => VPresenter | Promise<VPresenter>;
-export declare function syncGetVPresenter<T>(data: string | VPView, parent?: VPresenter | undefined, inited?: boolean): T;
-export declare function asyncGetVPresenter<T>(data: string | VPView, parent?: VPresenter | undefined, inited?: boolean): Promise<T>;
-export interface ILayerView extends VPView {
-    setZIndex(index: number): void;
-}
+export declare let getVPresenter: (data: string | VPView) => VPresenter | Promise<VPresenter>;
+export declare function syncGetVPresenter<T>(data: string | VPView): T;
+export declare function asyncGetVPresenter<T>(data: string | VPView): Promise<T>;
 export declare enum DialogState {
     Focused = 0,
     Blured = 1,
     Closed = 2,
 }
-export interface IDialogEffect {
-    scale: string;
+export declare enum DialogPosition {
+    Left = 0,
+    Center = 1,
+    Right = 2,
+    Top = 3,
+    Middle = 4,
+    Bottom = 5,
 }
-export interface IDialogPosition {
-    left: string;
-    right: string;
-    center: string;
-    top: string;
-    bottom: string;
-    middle: string;
+export declare enum DialogSize {
+    Content = 0,
+    Full = 1,
 }
-export interface IDialogConfig {
+export interface LayerView extends VPView {
+    setZIndex(index: number): void;
+}
+export declare type DialogRefer = string | number | Object | [Object, string] | ((dialog: Dialog) => number);
+export interface DialogConfig {
     className: string;
     masked: boolean;
-    fixedBackground: boolean;
-    x: string;
-    y: string;
-    width: string;
-    height: string;
-    offsetX: string;
-    offsetY: string;
+    fixed: boolean;
+    position: {
+        x: DialogPosition | DialogRefer;
+        y: DialogPosition | DialogRefer;
+    };
+    size: {
+        width: DialogSize | DialogRefer;
+        height: DialogSize | DialogRefer;
+    };
+    offset: {
+        x: DialogRefer;
+        y: DialogRefer;
+    };
     effect: string;
+    bodyEffect: string;
 }
-export interface IDialogConfigOptions {
+export interface DialogConfigOptions {
     className?: string;
     masked?: boolean;
-    fixedBackground?: boolean;
-    x?: string;
-    y?: string;
-    width?: string;
-    height?: string;
-    offsetX?: string;
-    offsetY?: string;
+    fixed?: boolean;
+    position?: {
+        x: DialogPosition | DialogRefer;
+        y: DialogPosition | DialogRefer;
+    };
+    size?: {
+        width: DialogSize | DialogRefer;
+        height: DialogSize | DialogRefer;
+    };
+    offset?: {
+        x: DialogRefer;
+        y: DialogRefer;
+    };
     effect?: string;
+    bodyEffect?: string;
 }
-export declare let DialogEffect: IDialogEffect;
-export declare let DialogPosition: IDialogPosition;
 export declare abstract class Dialog extends VPresenter {
     readonly history: History;
     readonly parent: Dialog | undefined;
-    readonly view: ILayerView;
+    readonly view: LayerView;
     readonly state: DialogState;
     readonly content: VPresenter | null;
     readonly dialog: View;
@@ -202,19 +220,18 @@ export declare abstract class Dialog extends VPresenter {
     readonly body: View;
     protected readonly _dialogList: Dialog[];
     private _zindex;
-    readonly config: IDialogConfig;
+    readonly config: DialogConfig;
     constructor(els: {
-        view: ILayerView;
+        view: LayerView;
         dialog: View;
         mask: View;
         body: View;
-    }, config?: IDialogConfigOptions);
+    }, config?: DialogConfigOptions);
     protected _onHistoryOverflow(e: any): void;
-    setConfig(config: IDialogConfigOptions): void;
+    setConfig(config: DialogConfigOptions): void;
     getZIndex(): number;
     getFocusedChild(): Dialog;
-    eachDialogChildren(callback: (item: Dialog) => void, andSelf?: boolean): void;
-    protected _afterConfigChange(oldConfig: IDialogConfig): void;
+    protected _afterConfigChange(oldConfig: DialogConfig): void;
     protected _setZIndex(i: number): void;
     protected _countIndex(): void;
     protected _beforeFocus(): void;
@@ -233,19 +250,22 @@ export declare abstract class Dialog extends VPresenter {
     private _blur();
     protected _setState(state: DialogState): void;
     protected _allowAppendChild(member: VPresenter): boolean;
-    onWindowResize(e: Event): void;
     appendChild(child: VPresenter): boolean;
     protected _appendView(member: VPresenter): void;
     protected _removeView(member: VPresenter): void;
+    protected _resizeX(target: VPresenter): void;
+    protected _resizeY(target: VPresenter): void;
+    protected _resizeWidth(target: VPresenter): void;
+    protected _resizeHeight(target: VPresenter): void;
 }
 export declare class Application extends Dialog {
     initTime: number;
     constructor(rootUri: Cmd | null, els: {
-        view: ILayerView;
+        view: LayerView;
         dialog: View;
         mask: View;
         body: View;
-    }, config?: IDialogConfigOptions);
+    }, config?: DialogConfigOptions);
     private _initHistory(initTime, rootUri);
     close(): boolean;
     focus(checked?: boolean): boolean;
@@ -302,4 +322,5 @@ export declare function setConfig(data: {
     createVPView?: (data: any) => VPView;
 }): void;
 export declare function getTopDialog(): Dialog;
+export declare function bootstrap(application: Application): void;
 export { application, namespace, taskCounter };
