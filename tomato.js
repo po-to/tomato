@@ -46,7 +46,7 @@ define(["require", "exports"], function (require, exports) {
         Busy: "TaskCountEvent.Busy",
         Free: "TaskCountEvent.Free"
     };
-    exports.VPresenterEvent = {
+    exports.ViewEvent = {
         Installed: "CPresenterEvent.Installed",
         Uninstalled: "CPresenterEvent.Uninstalled",
         ChildAppended: "CPresenterEvent.ChildAppended",
@@ -59,9 +59,9 @@ define(["require", "exports"], function (require, exports) {
         PropState[PropState["Computing"] = 1] = "Computing";
         PropState[PropState["Updated"] = 2] = "Updated";
     })(PropState = exports.PropState || (exports.PropState = {}));
-    exports.VPresenterTransaction = {
-        AllowInstall: "AllowInstall"
-    };
+    // export const ViewTransaction = {
+    //     AllowInstall: "AllowInstall"
+    // }
     exports.DialogEvent = {
         Focused: "DialogEvent.Focused",
         Blured: "DialogEvent.Blured",
@@ -250,35 +250,35 @@ define(["require", "exports"], function (require, exports) {
     exports.TaskCounter = TaskCounter;
     var taskCounter = new TaskCounter(3);
     exports.taskCounter = taskCounter;
-    function isVPView(data) {
-        return (typeof data.getVPID == "function") && (typeof data.getVPCON == "function") && (typeof data.setVPID == "function") && (typeof data.getSUBS == "function") && (typeof data.removeChild == "function") && (typeof data.appendChild == "function") && (typeof data.removeClass == "function") && (typeof data.addClass == "function");
+    function isViewComponent(data) {
+        return (typeof data.getVID == "function") && (typeof data.getVCON == "function") && (typeof data.setVID == "function") && (typeof data.getSUBS == "function") && (typeof data.removeChild == "function") && (typeof data.appendChild == "function") && (typeof data.removeClass == "function") && (typeof data.addClass == "function");
     }
-    var createVPView = function (data) {
+    var createViewComponent = function (data) {
         return {};
     };
-    var VPresenter = (function (_super) {
-        __extends(VPresenter, _super);
-        function VPresenter(view, parent, vpid) {
+    var View = (function (_super) {
+        __extends(View, _super);
+        function View(viewComponent, parent, vid) {
             var _this = _super.call(this, parent) || this;
-            _this.view = view;
+            _this.viewComponent = viewComponent;
             _this.children = [];
-            _this.vpid = "";
+            _this.vid = "";
             _this._propState = {};
             _this._propValue = {};
-            if (vpid) {
-                _this.vpid = vpid.split("?")[0].replace(/\/+$/, "");
+            if (vid) {
+                _this.vid = vid.split("?")[0].replace(/\/+$/, "");
             }
-            if (_this.vpid) {
-                VPresenterStore[_this.vpid] = _this;
+            if (_this.vid) {
+                ViewStore[_this.vid] = _this;
             }
             _this.initialization = _this._init();
             return _this;
         }
-        VPresenter.prototype._init = function () {
+        View.prototype._init = function () {
             var _this = this;
             var hasPromise = false;
-            var list = this.view.getSUBS().map(function (view) {
-                var result = exports.getVPresenter(view, _this, true);
+            var list = this.viewComponent.getSUBS().map(function (component) {
+                var result = exports.getView(component, _this, true);
                 if (!hasPromise && result instanceof Promise) {
                     hasPromise = true;
                 }
@@ -297,41 +297,41 @@ define(["require", "exports"], function (require, exports) {
             }
             var _a;
         };
-        VPresenter.prototype._allowInstallTo = function (parent) {
+        View.prototype._allowInstallTo = function (parent) {
             return true;
         };
-        VPresenter.prototype._allowUninstallTo = function (parent) {
+        View.prototype._allowUninstallTo = function (parent) {
             return true;
         };
-        VPresenter.prototype._allowAppendChild = function (child) {
+        View.prototype._allowAppendChild = function (child) {
             return true;
         };
-        VPresenter.prototype._allowRemoveChild = function (child) {
+        View.prototype._allowRemoveChild = function (child) {
             return true;
         };
-        VPresenter.prototype._beforeInstallTo = function (parent) {
+        View.prototype._beforeInstallTo = function (parent) {
         };
-        VPresenter.prototype._beforeUninstallTo = function (parent) {
+        View.prototype._beforeUninstallTo = function (parent) {
         };
-        VPresenter.prototype._afterInstallTo = function (parent) {
+        View.prototype._afterInstallTo = function (parent) {
         };
-        VPresenter.prototype._afterUninstallTo = function (parent) {
+        View.prototype._afterUninstallTo = function (parent) {
         };
-        VPresenter.prototype._afterRemoveChild = function (member) {
+        View.prototype._afterRemoveChild = function (member) {
         };
-        VPresenter.prototype._afterAppendChild = function (member) {
+        View.prototype._afterAppendChild = function (member) {
         };
-        VPresenter.prototype._beforeRemoveChild = function (member) {
+        View.prototype._beforeRemoveChild = function (member) {
         };
-        VPresenter.prototype._beforeAppendChild = function (member) {
+        View.prototype._beforeAppendChild = function (member) {
         };
-        VPresenter.prototype._appendView = function (member) {
-            this.view.appendChild(member.view);
+        View.prototype._appendView = function (member) {
+            this.viewComponent.appendChild(member.viewComponent);
         };
-        VPresenter.prototype._removeView = function (member) {
-            this.view.removeChild(member.view);
+        View.prototype._removeView = function (member) {
+            this.viewComponent.removeChild(member.viewComponent);
         };
-        VPresenter.prototype._checkRemoveChild = function (member) {
+        View.prototype._checkRemoveChild = function (member) {
             if (member.parent != this) {
                 return true;
             }
@@ -341,7 +341,7 @@ define(["require", "exports"], function (require, exports) {
             }
             return true;
         };
-        VPresenter.prototype.removeChild = function (member, checked) {
+        View.prototype.removeChild = function (member, checked) {
             if (member.parent != this) {
                 return false;
             }
@@ -355,11 +355,11 @@ define(["require", "exports"], function (require, exports) {
             member.setParent(undefined);
             this._afterRemoveChild(member);
             member._afterUninstallTo(this);
-            this.dispatch(new PEvent(exports.VPresenterEvent.ChildRemoved));
-            member.dispatch(new PEvent(exports.VPresenterEvent.Uninstalled));
+            this.dispatch(new PEvent(exports.ViewEvent.ChildRemoved));
+            member.dispatch(new PEvent(exports.ViewEvent.Uninstalled));
             return true;
         };
-        VPresenter.prototype._checkAppendChild = function (member) {
+        View.prototype._checkAppendChild = function (member) {
             if (member.parent == this) {
                 return true;
             }
@@ -370,7 +370,7 @@ define(["require", "exports"], function (require, exports) {
             }
             return true;
         };
-        VPresenter.prototype.getDialog = function () {
+        View.prototype.getDialog = function () {
             var parent = this.parent;
             while (parent) {
                 if (parent instanceof Dialog) {
@@ -380,7 +380,7 @@ define(["require", "exports"], function (require, exports) {
             }
             return application;
         };
-        VPresenter.prototype.appendChild = function (member, checked) {
+        View.prototype.appendChild = function (member, checked) {
             if (member.parent == this) {
                 return false;
             }
@@ -397,16 +397,16 @@ define(["require", "exports"], function (require, exports) {
             this._appendView(member);
             this._afterAppendChild(member);
             member._afterInstallTo(this);
-            this.dispatch(new PEvent(exports.VPresenterEvent.ChildAppended));
-            member.dispatch(new PEvent(exports.VPresenterEvent.Installed));
+            this.dispatch(new PEvent(exports.ViewEvent.ChildAppended));
+            member.dispatch(new PEvent(exports.ViewEvent.Installed));
             return true;
         };
-        VPresenter.prototype.destroy = function () {
-            if (this.vpid) {
-                delete VPresenterStore[this.vpid];
+        View.prototype.destroy = function () {
+            if (this.vid) {
+                delete ViewStore[this.vid];
             }
         };
-        VPresenter.prototype.eachChildren = function (callback, andSelf) {
+        View.prototype.eachChildren = function (callback, andSelf) {
             if (andSelf) {
                 callback(this);
             }
@@ -416,21 +416,21 @@ define(["require", "exports"], function (require, exports) {
                 });
             }
         };
-        VPresenter.prototype.invalidProp = function (prop) {
+        View.prototype.invalidProp = function (prop) {
             if (this._propState[prop] == PropState.Invalid) {
                 return;
             }
             this._propState[prop] = PropState.Invalid;
             invalidProp(this);
         };
-        VPresenter.prototype.getProp = function (prop, ovalue) {
+        View.prototype.getProp = function (prop, ovalue) {
             var value = this._propState[prop];
             if (value == PropState.Invalid) {
                 if (ovalue) {
                     return this._propValue[prop];
                 }
                 else {
-                    throw this.vpid + '.' + prop + ' is invalid';
+                    throw this.vid + '.' + prop + ' is invalid';
                 }
             }
             else if (value == PropState.Computing) {
@@ -438,7 +438,7 @@ define(["require", "exports"], function (require, exports) {
                     return this._propValue[prop];
                 }
                 else {
-                    throw this.vpid + '.' + prop + ' is loop dependency';
+                    throw this.vid + '.' + prop + ' is loop dependency';
                 }
             }
             else if (value == PropState.Updated) {
@@ -451,20 +451,20 @@ define(["require", "exports"], function (require, exports) {
                 return this._propValue[prop];
             }
         };
-        VPresenter.prototype._computeProp = function (prop) {
+        View.prototype._computeProp = function (prop) {
             return '';
         };
-        VPresenter.prototype.updateProp = function () {
+        View.prototype.updateProp = function () {
             for (var key in this._propState) {
                 if (this._propState[key] == PropState.Invalid) {
                     this._propState[key] = PropState.Updated;
                 }
             }
         };
-        return VPresenter;
+        return View;
     }(PDispatcher));
-    exports.VPresenter = VPresenter;
-    var VPresenterStore = {};
+    exports.View = View;
+    var ViewStore = {};
     function syncRequire(path) {
         try {
             return require(path);
@@ -479,12 +479,12 @@ define(["require", "exports"], function (require, exports) {
             });
         }
     }
-    exports.getVPresenter = (function (VPresenterStore) {
-        function buildView(data) {
-            return createVPView(data);
+    exports.getView = (function (ViewStore) {
+        function buildViewComponent(data) {
+            return createViewComponent(data);
         }
-        function initVPresenter(con, view, url, parent, inited) {
-            var vp = new con(view, parent, url);
+        function initView(con, component, url, parent, inited) {
+            var vp = new con(component, parent, url);
             if (inited) {
                 if (vp.initialization) {
                     return vp.initialization;
@@ -497,44 +497,44 @@ define(["require", "exports"], function (require, exports) {
                 return vp;
             }
         }
-        function buildVPresenter(view, url, parent, inited) {
-            if (!isVPView(view)) {
-                console.log(view);
-                throw "is not a VPView";
+        function buildView(component, url, parent, inited) {
+            if (!isViewComponent(component)) {
+                console.log(component);
+                throw "is not a ViewComponent";
             }
-            var conPath = view.getVPCON();
+            var conPath = component.getVCON();
             if (conPath) {
                 var result = syncRequire(conPath);
                 if (result instanceof Promise) {
                     return result.then(function (data) {
-                        return initVPresenter(data, view, url, parent, inited);
+                        return initView(data, component, url, parent, inited);
                     });
                 }
                 else {
-                    return initVPresenter(result, view, url, parent, inited);
+                    return initView(result, component, url, parent, inited);
                 }
             }
             else {
-                return initVPresenter(VPresenter, view, url, parent, inited);
+                return initView(View, component, url, parent, inited);
             }
         }
-        function returnResult(view, url, parent, inited) {
-            if (view) {
-                return buildVPresenter(view, url, parent, inited);
+        function returnResult(component, url, parent, inited) {
+            if (component) {
+                return buildView(component, url, parent, inited);
             }
             else if (url) {
                 var result = syncRequire(url);
                 if (result instanceof Promise) {
                     return result.then(function (data) {
-                        return buildVPresenter(buildView(data), url, parent, inited);
+                        return buildView(buildViewComponent(data), url, parent, inited);
                     });
                 }
                 else {
-                    return buildVPresenter(buildView(result), url, parent, inited);
+                    return buildView(buildViewComponent(result), url, parent, inited);
                 }
             }
             else {
-                throw 'not found view and url !';
+                throw 'not found component and url !';
             }
         }
         return function (data, parent, inited) {
@@ -542,30 +542,30 @@ define(["require", "exports"], function (require, exports) {
             if (inited === void 0) { inited = true; }
             var url;
             var id;
-            var view;
+            var component;
             if (typeof data != "string") {
-                view = data;
-                id = data.getVPID();
+                component = data;
+                id = data.getVID();
             }
             else {
-                view = null;
+                component = null;
                 id = data;
             }
             url = id;
             id = id.split("?")[0].replace(/\/+$/, "");
-            var cacheData = VPresenterStore[id];
-            if (cacheData instanceof VPresenter) {
+            var cacheData = ViewStore[id];
+            if (cacheData instanceof View) {
                 return cacheData;
             }
             else if (cacheData instanceof Promise) {
                 return cacheData;
             }
             else {
-                var result = returnResult(view, url, parent, inited);
+                var result = returnResult(component, url, parent, inited);
                 if (result instanceof Promise) {
-                    VPresenterStore[id] = result;
+                    ViewStore[id] = result;
                     result['catch'](function (error) {
-                        delete VPresenterStore[id];
+                        delete ViewStore[id];
                         console.log(url + ":" + error);
                     });
                     taskCounter.addItem(result, 'load:' + url);
@@ -573,17 +573,17 @@ define(["require", "exports"], function (require, exports) {
                 return result;
             }
         };
-    })(VPresenterStore);
-    function syncGetVPresenter(data, parent, inited) {
+    })(ViewStore);
+    function syncGetView(data, parent, inited) {
         if (parent === void 0) { parent = undefined; }
         if (inited === void 0) { inited = true; }
-        return exports.getVPresenter(data);
+        return exports.getView(data);
     }
-    exports.syncGetVPresenter = syncGetVPresenter;
-    function asyncGetVPresenter(data, parent, inited) {
+    exports.syncGetView = syncGetView;
+    function asyncGetView(data, parent, inited) {
         if (parent === void 0) { parent = undefined; }
         if (inited === void 0) { inited = true; }
-        var result = exports.getVPresenter(data);
+        var result = exports.getView(data);
         if (result instanceof Promise) {
             return result;
         }
@@ -591,7 +591,7 @@ define(["require", "exports"], function (require, exports) {
             return Promise.resolve(result);
         }
     }
-    exports.asyncGetVPresenter = asyncGetVPresenter;
+    exports.asyncGetView = asyncGetView;
     var DialogState;
     (function (DialogState) {
         DialogState[DialogState["Focused"] = 0] = "Focused";
@@ -625,7 +625,7 @@ define(["require", "exports"], function (require, exports) {
     var Dialog = (function (_super) {
         __extends(Dialog, _super);
         function Dialog(els, config) {
-            var _this = _super.call(this, els.view, undefined) || this;
+            var _this = _super.call(this, els.component, undefined) || this;
             _this.history = new History();
             _this.state = DialogState.Closed;
             _this.content = null;
@@ -635,7 +635,7 @@ define(["require", "exports"], function (require, exports) {
             _this.dialog = els.dialog;
             _this.mask = els.mask;
             _this.body = els.body;
-            _this.view.addClass("pt-layer pt-" + DialogState[_this.state]);
+            _this.viewComponent.addClass("pt-layer pt-" + DialogState[_this.state]);
             _this.dialog.addClass("pt-dialog");
             _this.mask.addClass("pt-mask");
             _this.body.addClass("pt-body");
@@ -680,15 +680,15 @@ define(["require", "exports"], function (require, exports) {
         Dialog.prototype._afterConfigChange = function (oldConfig) {
             this.dialog.removeClass(oldConfig.className);
             this.mask.removeClass(oldConfig.className);
-            this.view.removeClass(["pt-" + oldConfig.effect, (oldConfig.masked ? "pt-masked" : "")].join(" "));
+            this.viewComponent.removeClass(["pt-" + oldConfig.effect, (oldConfig.masked ? "pt-masked" : "")].join(" "));
             var config = this.config;
             this.dialog.addClass(config.className);
             this.mask.addClass(config.className);
-            this.view.addClass(["pt-" + config.effect, (config.masked ? "pt-masked" : "")].join(" "));
+            this.viewComponent.addClass(["pt-" + config.effect, (config.masked ? "pt-masked" : "")].join(" "));
         };
         Dialog.prototype._setZIndex = function (i) {
             this._zindex = i;
-            this.view.setZIndex(i);
+            this.viewComponent.setZIndex(i);
         };
         Dialog.prototype._countIndex = function () {
             this._dialogList.forEach(function (dialog, index) {
@@ -867,9 +867,9 @@ define(["require", "exports"], function (require, exports) {
             }
         };
         Dialog.prototype._setState = function (state) {
-            this.view.removeClass("pt-" + DialogState[this.state]);
+            this.viewComponent.removeClass("pt-" + DialogState[this.state]);
             this.state = state;
-            this.view.addClass("pt-" + DialogState[this.state]);
+            this.viewComponent.addClass("pt-" + DialogState[this.state]);
         };
         Dialog.prototype._allowAppendChild = function (member) {
             if (member instanceof Dialog) {
@@ -905,32 +905,32 @@ define(["require", "exports"], function (require, exports) {
         };
         Dialog.prototype._appendView = function (member) {
             if (member instanceof Dialog) {
-                this.view.appendChild(member.view);
+                this.viewComponent.appendChild(member.viewComponent);
             }
             else {
-                this.body.appendChild(member.view);
+                this.body.appendChild(member.viewComponent);
             }
         };
         Dialog.prototype._removeView = function (member) {
             if (member instanceof Dialog) {
-                this.view.removeChild(member.view);
+                this.viewComponent.removeChild(member.viewComponent);
             }
             else {
-                this.body.removeChild(member.view);
+                this.body.removeChild(member.viewComponent);
             }
         };
         return Dialog;
-    }(VPresenter));
+    }(View));
     exports.Dialog = Dialog;
     var Application = (function (_super) {
         __extends(Application, _super);
         function Application(rootUri, els, config) {
             var _this = _super.call(this, els, config) || this;
             _this.initTime = Date.now();
-            _this.view.removeClass("pt-layer").addClass("pt-application");
+            _this.viewComponent.removeClass("pt-layer").addClass("pt-application");
             _this._setZIndex(0);
             _this._setState(DialogState.Focused);
-            _this.view.addClass("pt-topDialog");
+            _this.viewComponent.addClass("pt-topDialog");
             taskCounter.addListener(exports.TaskCountEvent.Added, function (e) {
                 _this.mask.addClass("pt-show");
             }).addListener(exports.TaskCountEvent.Completed, function (e) {
@@ -1556,15 +1556,15 @@ define(["require", "exports"], function (require, exports) {
                 application.eachDialogChildren(function (item) {
                     item.onWindowResize(e);
                 }, true);
-            }, 200);
+            }, 100);
         }
     });
     function setConfig(data) {
         if (data.namespace) {
             exports.namespace = namespace = data.namespace;
         }
-        if (data.createVPView) {
-            createVPView = data.createVPView;
+        if (data.createViewComponent) {
+            createViewComponent = data.createViewComponent;
         }
         if (data.application) {
             exports.application = application = data.application;
@@ -1579,9 +1579,9 @@ define(["require", "exports"], function (require, exports) {
                 application.history.push(new openDialogCmd());
                 application.history.go(-1);
             }
-            _topDialog && _topDialog.view.removeClass("pt-topDialog");
+            _topDialog && _topDialog.viewComponent.removeClass("pt-topDialog");
             _topDialog = dialog;
-            _topDialog.view.addClass("pt-topDialog");
+            _topDialog.viewComponent.addClass("pt-topDialog");
         }
     }
     function getTopDialog() {

@@ -42,7 +42,7 @@ export const TaskCountEvent = {
     Free: "TaskCountEvent.Free"
 }
 
-export const VPresenterEvent = {
+export const ViewEvent = {
     Installed: "CPresenterEvent.Installed",
     Uninstalled: "CPresenterEvent.Uninstalled",
     ChildAppended: "CPresenterEvent.ChildAppended",
@@ -55,9 +55,9 @@ export enum PropState {
     Computing,
     Updated,
 }
-export const VPresenterTransaction = {
-    AllowInstall: "AllowInstall"
-}
+// export const ViewTransaction = {
+//     AllowInstall: "AllowInstall"
+// }
 
 export const DialogEvent = {
     Focused: "DialogEvent.Focused",
@@ -108,7 +108,7 @@ function emptyObject<T>(obj: any): T {
 
 let _invalidLayoutTimer: number = 0;
 
-export function invalidProp(vp: VPresenter) {
+export function invalidProp(vp: View) {
     if (!_invalidLayoutTimer) {
         _invalidLayoutTimer = setTimeout(function () {
             _invalidLayoutTimer = 0;
@@ -226,29 +226,29 @@ export class TaskCounter extends PDispatcher {
 }
 let taskCounter: TaskCounter = new TaskCounter(3);
 
-export interface View {
-    removeChild(view: View): any;
-    appendChild(view: View): any;
+export interface Component {
+    removeChild(component: Component): any;
+    appendChild(component: Component): any;
     removeClass(className: string): any;
     addClass(className: string): any;
 }
 
-export interface VPView extends View {
-    getVPID(): string;
-    getVPCON(): string;
-    setVPID(id: string): void;
-    getSUBS(): VPView[];
+export interface ViewComponent extends Component {
+    getVID(): string;
+    getVCON(): string;
+    setVID(id: string): void;
+    getSUBS(): ViewComponent[];
 }
-function isVPView(data: any): data is VPView {
-    return (typeof data.getVPID == "function") && (typeof data.getVPCON == "function") && (typeof data.setVPID == "function") && (typeof data.getSUBS == "function") && (typeof data.removeChild == "function") && (typeof data.appendChild == "function") && (typeof data.removeClass == "function") && (typeof data.addClass == "function")
+function isViewComponent(data: any): data is ViewComponent {
+    return (typeof data.getVID == "function") && (typeof data.getVCON == "function") && (typeof data.setVID == "function") && (typeof data.getSUBS == "function") && (typeof data.removeChild == "function") && (typeof data.appendChild == "function") && (typeof data.removeClass == "function") && (typeof data.addClass == "function")
 }
-let createVPView: (data: any) => VPView = function (data: any): VPView {
-    return {} as VPView;
+let createViewComponent: (data: any) => ViewComponent = function (data: any): ViewComponent {
+    return {} as ViewComponent;
 };
-export class VPresenter extends PDispatcher {
-    public readonly parent: VPresenter | undefined;
-    public readonly children: VPresenter[] = [];
-    public readonly vpid:string = "";
+export class View extends PDispatcher {
+    public readonly parent: View | undefined;
+    public readonly children: View[] = [];
+    public readonly vid:string = "";
     public readonly initialization:Promise<this>|null;
 
     protected _propState:{[prop:string]:PropState} = {};
@@ -257,20 +257,20 @@ export class VPresenter extends PDispatcher {
     protected _heightDependOn: SizeDependOn | undefined;
 
 
-    constructor(public readonly view: VPView, parent?: VPresenter, vpid?: string) {
+    constructor(public readonly viewComponent: ViewComponent, parent?: View, vid?: string) {
         super(parent);
-        if(vpid){
-            this.vpid = vpid.split("?")[0].replace(/\/+$/, "");
+        if(vid){
+            this.vid = vid.split("?")[0].replace(/\/+$/, "");
         }
-        if (this.vpid) {
-            VPresenterStore[this.vpid] = this;
+        if (this.vid) {
+            ViewStore[this.vid] = this;
         }
         this.initialization = this._init();
     }
     protected _init(): Promise<this> | null {
         let hasPromise:boolean = false;
-        let list = this.view.getSUBS().map((view) => {
-            let result = getVPresenter(view,this,true);
+        let list = this.viewComponent.getSUBS().map((component) => {
+            let result = getView(component,this,true);
             if (!hasPromise && result instanceof Promise) {
                 hasPromise = true;
             }
@@ -288,42 +288,42 @@ export class VPresenter extends PDispatcher {
             )
         }
     }
-    protected _allowInstallTo(parent: VPresenter): boolean {
+    protected _allowInstallTo(parent: View): boolean {
         return true;
     }
-    protected _allowUninstallTo(parent: VPresenter): boolean {
+    protected _allowUninstallTo(parent: View): boolean {
         return true;
     }
-    protected _allowAppendChild(child: VPresenter): boolean {
+    protected _allowAppendChild(child: View): boolean {
         return true;
     }
-    protected _allowRemoveChild(child: VPresenter): boolean {
+    protected _allowRemoveChild(child: View): boolean {
         return true;
     }
-    protected _beforeInstallTo(parent: VPresenter): void {
+    protected _beforeInstallTo(parent: View): void {
     }
-    protected _beforeUninstallTo(parent: VPresenter): void {
+    protected _beforeUninstallTo(parent: View): void {
     }
-    protected _afterInstallTo(parent: VPresenter): void {
+    protected _afterInstallTo(parent: View): void {
     }
-    protected _afterUninstallTo(parent: VPresenter): void {
+    protected _afterUninstallTo(parent: View): void {
     }
-    protected _afterRemoveChild(member: VPresenter): void {
+    protected _afterRemoveChild(member: View): void {
     }
-    protected _afterAppendChild(member: VPresenter): void {
+    protected _afterAppendChild(member: View): void {
     }
-    protected _beforeRemoveChild(member: VPresenter): void {
+    protected _beforeRemoveChild(member: View): void {
     }
-    protected _beforeAppendChild(member: VPresenter): void {
+    protected _beforeAppendChild(member: View): void {
     }
-    protected _appendView(member: VPresenter) {
-        this.view.appendChild(member.view);
+    protected _appendView(member: View) {
+        this.viewComponent.appendChild(member.viewComponent);
     }
-    protected _removeView(member: VPresenter) {
-        this.view.removeChild(member.view);
+    protected _removeView(member: View) {
+        this.viewComponent.removeChild(member.viewComponent);
     }
 
-    protected _checkRemoveChild(member: VPresenter): boolean {
+    protected _checkRemoveChild(member: View): boolean {
         if (member.parent != this) { return true; }
         if (
             !member._allowUninstallTo(this) ||
@@ -331,7 +331,7 @@ export class VPresenter extends PDispatcher {
         ) { return false; }
         return true;
     }
-    removeChild(member: VPresenter, checked?: boolean): boolean {
+    removeChild(member: View, checked?: boolean): boolean {
         if (member.parent != this) { return false; }
         if (!checked && !this._checkRemoveChild(member)) {
             return false;
@@ -343,11 +343,11 @@ export class VPresenter extends PDispatcher {
         member.setParent(undefined);
         this._afterRemoveChild(member);
         member._afterUninstallTo(this);
-        this.dispatch(new PEvent(VPresenterEvent.ChildRemoved));
-        member.dispatch(new PEvent(VPresenterEvent.Uninstalled));
+        this.dispatch(new PEvent(ViewEvent.ChildRemoved));
+        member.dispatch(new PEvent(ViewEvent.Uninstalled));
         return true;
     }
-    protected _checkAppendChild(member: VPresenter): boolean {
+    protected _checkAppendChild(member: View): boolean {
         if (member.parent == this) { return true; }
         if (
             !member._allowInstallTo(this) ||
@@ -357,7 +357,7 @@ export class VPresenter extends PDispatcher {
         return true;
     }
     getDialog(): Dialog {
-        let parent: VPresenter | undefined = this.parent;
+        let parent: View | undefined = this.parent;
         while (parent) {
             if (parent instanceof Dialog) {
                 return parent;
@@ -366,7 +366,7 @@ export class VPresenter extends PDispatcher {
         }
         return application;
     }
-    appendChild(member: VPresenter, checked?: boolean): boolean {
+    appendChild(member: View, checked?: boolean): boolean {
         if (member.parent == this) { return false; }
         if (!checked && !this._checkAppendChild(member)) {
             return false;
@@ -379,16 +379,16 @@ export class VPresenter extends PDispatcher {
         this._appendView(member);
         this._afterAppendChild(member);
         member._afterInstallTo(this);
-        this.dispatch(new PEvent(VPresenterEvent.ChildAppended));
-        member.dispatch(new PEvent(VPresenterEvent.Installed));
+        this.dispatch(new PEvent(ViewEvent.ChildAppended));
+        member.dispatch(new PEvent(ViewEvent.Installed));
         return true;
     }
     destroy(): void {
-        if (this.vpid) {
-            delete VPresenterStore[this.vpid];
+        if (this.vid) {
+            delete ViewStore[this.vid];
         }
     }
-    eachChildren(callback: (item: VPresenter) => void, andSelf?: boolean) {
+    eachChildren(callback: (item: View) => void, andSelf?: boolean) {
         if (andSelf) {
             callback(this);
         }
@@ -411,13 +411,13 @@ export class VPresenter extends PDispatcher {
             if(ovalue){
                 return this._propValue[prop];
             }else{
-                throw this.vpid+'.'+prop+' is invalid';
+                throw this.vid+'.'+prop+' is invalid';
             }
         }else if(value==PropState.Computing){
             if(ovalue){
                 return this._propValue[prop];
             }else{
-                throw this.vpid+'.'+prop+' is loop dependency';
+                throw this.vid+'.'+prop+' is loop dependency';
             }
         }else if(value==PropState.Updated){
             this._propState[prop] = PropState.Computing;
@@ -438,7 +438,7 @@ export class VPresenter extends PDispatcher {
             }
         }
     }
-    // protected _resizeX(target: VPresenter = this) {
+    // protected _resizeX(target: View = this) {
     //     if (this._internalSize.x == LayoutState.Invalid) {
     //         return;
     //     }
@@ -454,7 +454,7 @@ export class VPresenter extends PDispatcher {
     //         }
     //     }
     // }
-    // protected _resizeY(target: VPresenter = this) {
+    // protected _resizeY(target: View = this) {
     //     if (this._internalSize.y == LayoutState.Invalid) {
     //         return;
     //     }
@@ -470,7 +470,7 @@ export class VPresenter extends PDispatcher {
     //         }
     //     }
     // }
-    // protected _resizeWidth(target: VPresenter = this) {
+    // protected _resizeWidth(target: View = this) {
     //     if (this._internalSize.width == LayoutState.Invalid) {
     //         return;
     //     }
@@ -497,7 +497,7 @@ export class VPresenter extends PDispatcher {
     //         }
     //     }
     // }
-    // protected _resizeHeight(target: VPresenter = this) {
+    // protected _resizeHeight(target: View = this) {
     //     if (this._internalSize.height == LayoutState.Invalid) {
     //         return;
     //     }
@@ -539,7 +539,7 @@ export class VPresenter extends PDispatcher {
     // public getX(): number {
     //     let size = this._internalSize;
     //     if(size.x==LayoutState.Computing){
-    //         throw this.vpid+'.x is loop dependency';
+    //         throw this.vid+'.x is loop dependency';
     //     }else if(size.x==LayoutState.Invalid || size.x==LayoutState.Updated){
     //         size.x = LayoutState.Computing;
     //         size.x = this._computeX();
@@ -549,7 +549,7 @@ export class VPresenter extends PDispatcher {
     // public getY(original:boolean=false): number {
     //     let size = this._internalSize;
     //     if(size.y==LayoutState.Computing){
-    //         throw this.vpid+'.y is loop dependency';
+    //         throw this.vid+'.y is loop dependency';
     //     }else if(size.y==LayoutState.Invalid || size.y==LayoutState.Updated){
     //         size.y = LayoutState.Computing;
     //         size.y = this._computeY();
@@ -559,7 +559,7 @@ export class VPresenter extends PDispatcher {
     // public getWidth(original:boolean=false): number {
     //     let size = this._internalSize;
     //     if(size.width==LayoutState.Computing){
-    //         throw this.vpid+'.width is loop dependency';
+    //         throw this.vid+'.width is loop dependency';
     //     }else if(size.width==LayoutState.Invalid || size.width==LayoutState.Updated){
     //         size.width = LayoutState.Computing;
     //         size.width = this._computeWidth();
@@ -569,7 +569,7 @@ export class VPresenter extends PDispatcher {
     // public getHeight(original:boolean=false): number {
     //     let size = this._internalSize;
     //     if(size.height==LayoutState.Computing){
-    //         throw this.vpid+'.height is loop dependency';
+    //         throw this.vid+'.height is loop dependency';
     //     }else if(size.height==LayoutState.Invalid || size.height==LayoutState.Updated){
     //         size.height = LayoutState.Computing;
     //         size.height = this._computeHeight();
@@ -579,7 +579,7 @@ export class VPresenter extends PDispatcher {
     
 }
 
-let VPresenterStore: { [key: string]: VPresenter | Promise<VPresenter> } = {}
+let ViewStore: { [key: string]: View | Promise<View> } = {}
 
 function syncRequire(path: string): any | Promise<any> {
     try {
@@ -595,13 +595,13 @@ function syncRequire(path: string): any | Promise<any> {
     }
 }
 
-export let getVPresenter = (function (VPresenterStore) {
+export let getView = (function (ViewStore) {
 
-    function buildView(data: any): VPView {
-        return createVPView(data);
+    function buildViewComponent(data: any): ViewComponent {
+        return createViewComponent(data);
     }
-    function initVPresenter(con: Function, view: VPView, url: string, parent:VPresenter|undefined,inited:boolean): VPresenter | Promise<VPresenter> {
-        let vp: VPresenter = new (con as any)(view, parent, url);
+    function initView(con: Function, component: ViewComponent, url: string, parent:View|undefined,inited:boolean): View | Promise<View> {
+        let vp: View = new (con as any)(component, parent, url);
         if(inited){
             if(vp.initialization){
                 return vp.initialization;
@@ -612,66 +612,66 @@ export let getVPresenter = (function (VPresenterStore) {
             return vp;
         }
     }
-    function buildVPresenter(view: VPView, url: string, parent:VPresenter|undefined,inited:boolean): VPresenter | Promise<VPresenter> {
-        if (!isVPView(view)) {
-            console.log(view);
-            throw "is not a VPView";
+    function buildView(component: ViewComponent, url: string, parent:View|undefined,inited:boolean): View | Promise<View> {
+        if (!isViewComponent(component)) {
+            console.log(component);
+            throw "is not a ViewComponent";
         }
-        let conPath = view.getVPCON();
+        let conPath = component.getVCON();
         if (conPath) {
             let result = syncRequire(conPath);
             if (result instanceof Promise) {
                 return result.then(function (data) {
-                    return initVPresenter(data, view, url,parent,inited);
+                    return initView(data, component, url,parent,inited);
                 })
             } else {
-                return initVPresenter(result, view, url,parent,inited);
+                return initView(result, component, url,parent,inited);
             }
         } else {
-            return initVPresenter(VPresenter, view, url,parent,inited);
+            return initView(View, component, url,parent,inited);
         }
     }
 
-    function returnResult(view: VPView | null, url: string, parent:VPresenter|undefined,inited:boolean): VPresenter | Promise<VPresenter> {
-        if (view) {
-            return buildVPresenter(view, url, parent, inited);
+    function returnResult(component: ViewComponent | null, url: string, parent:View|undefined,inited:boolean): View | Promise<View> {
+        if (component) {
+            return buildView(component, url, parent, inited);
         } else if (url) {
             let result = syncRequire(url);
             if (result instanceof Promise) {
                 return result.then(function (data) {
-                    return buildVPresenter(buildView(data), url, parent, inited);
+                    return buildView(buildViewComponent(data), url, parent, inited);
                 })
             } else {
-                return buildVPresenter(buildView(result), url, parent, inited);
+                return buildView(buildViewComponent(result), url, parent, inited);
             }
         } else {
-            throw 'not found view and url !'
+            throw 'not found component and url !'
         }
     }
-    return function (data: string | VPView, parent:VPresenter|undefined = undefined, inited:boolean=true): VPresenter | Promise<VPresenter> {
+    return function (data: string | ViewComponent, parent:View|undefined = undefined, inited:boolean=true): View | Promise<View> {
         let url: string;
         let id: string;
-        let view: VPView | null;
+        let component: ViewComponent | null;
         if (typeof data != "string") {
-            view = data;
-            id = data.getVPID();
+            component = data;
+            id = data.getVID();
         } else {
-            view = null;
+            component = null;
             id = data;
         }
         url = id;
         id = id.split("?")[0].replace(/\/+$/, "");
-        let cacheData: Promise<VPresenter> | VPresenter | null = VPresenterStore[id];
-        if (cacheData instanceof VPresenter) {
+        let cacheData: Promise<View> | View | null = ViewStore[id];
+        if (cacheData instanceof View) {
             return cacheData;
         } else if (cacheData instanceof Promise) {
             return cacheData;
         } else {
-            let result = returnResult(view, url, parent, inited);
+            let result = returnResult(component, url, parent, inited);
             if (result instanceof Promise) {
-                VPresenterStore[id] = result;
+                ViewStore[id] = result;
                 result['catch'](function (error) {
-                    delete VPresenterStore[id];
+                    delete ViewStore[id];
                     console.log(url + ":" + error);
                 })
                 taskCounter.addItem(result, 'load:' + url);
@@ -680,13 +680,13 @@ export let getVPresenter = (function (VPresenterStore) {
         }
     }
 
-})(VPresenterStore)
+})(ViewStore)
 
-export function syncGetVPresenter<T>(data: string | VPView, parent:VPresenter|undefined = undefined, inited:boolean=true): T {
-    return getVPresenter(data) as any;
+export function syncGetView<T>(data: string | ViewComponent, parent:View|undefined = undefined, inited:boolean=true): T {
+    return getView(data) as any;
 }
-export function asyncGetVPresenter<T>(data: string | VPView, parent:VPresenter|undefined = undefined, inited:boolean=true): Promise<T> {
-    let result = getVPresenter(data);
+export function asyncGetView<T>(data: string | ViewComponent, parent:View|undefined = undefined, inited:boolean=true): Promise<T> {
+    let result = getView(data);
     if (result instanceof Promise) {
         return result as any;
     } else {
@@ -694,7 +694,7 @@ export function asyncGetVPresenter<T>(data: string | VPView, parent:VPresenter|u
     }
 }
 
-export interface ILayerView extends VPView {
+export interface ILayerComponent extends ViewComponent {
     setZIndex(index: number): void;
 }
 
@@ -758,28 +758,28 @@ let DialogConfig:IDialogConfig = {
     offsetY: "",
     effect: DialogEffect.scale
 }
-export abstract class Dialog extends VPresenter {
+export abstract class Dialog extends View {
     public readonly history = new History();
     public readonly parent: Dialog | undefined;
-    public readonly view: ILayerView;
+    public readonly viewComponent: ILayerComponent;
     public readonly state: DialogState = DialogState.Closed;
-    public readonly content: VPresenter | null = null;
-    public readonly dialog: View;
-    public readonly mask: View;
-    public readonly body: View;
+    public readonly content: View | null = null;
+    public readonly dialog: Component;
+    public readonly mask: Component;
+    public readonly body: Component;
     protected readonly _dialogList: Dialog[] = [];
     private _zindex: number = -1;
 
 
     public readonly config: IDialogConfig = DialogConfig;
 
-    constructor(els: { view: ILayerView, dialog: View, mask: View, body: View }, config?: IDialogConfigOptions) {
-        super(els.view, undefined);
+    constructor(els: { component: ILayerComponent, dialog: Component, mask: Component, body: Component }, config?: IDialogConfigOptions) {
+        super(els.component, undefined);
         this.dialog = els.dialog;
         this.mask = els.mask;
         this.body = els.body;
 
-        this.view.addClass("pt-layer pt-" + DialogState[this.state]);
+        this.viewComponent.addClass("pt-layer pt-" + DialogState[this.state]);
         this.dialog.addClass("pt-dialog");
         this.mask.addClass("pt-mask");
         this.body.addClass("pt-body");
@@ -824,15 +824,15 @@ export abstract class Dialog extends VPresenter {
     protected _afterConfigChange(oldConfig: IDialogConfig) {
         this.dialog.removeClass(oldConfig.className);
         this.mask.removeClass(oldConfig.className);
-        this.view.removeClass(["pt-"+oldConfig.effect,(oldConfig.masked?"pt-masked":"")].join(" "));
+        this.viewComponent.removeClass(["pt-"+oldConfig.effect,(oldConfig.masked?"pt-masked":"")].join(" "));
         let config = this.config;
         this.dialog.addClass(config.className);
         this.mask.addClass(config.className);
-        this.view.addClass(["pt-"+config.effect,(config.masked?"pt-masked":"")].join(" "));
+        this.viewComponent.addClass(["pt-"+config.effect,(config.masked?"pt-masked":"")].join(" "));
     }
     protected _setZIndex(i: number): void {
         this._zindex = i;
-        this.view.setZIndex(i);
+        this.viewComponent.setZIndex(i);
     }
     protected _countIndex(): void {
         this._dialogList.forEach(function (dialog, index) {
@@ -999,11 +999,11 @@ export abstract class Dialog extends VPresenter {
         }
     }
     protected _setState(state: DialogState): void {
-        this.view.removeClass("pt-" + DialogState[this.state]);
+        this.viewComponent.removeClass("pt-" + DialogState[this.state]);
         (this as any).state = state;
-        this.view.addClass("pt-" + DialogState[this.state]);
+        this.viewComponent.addClass("pt-" + DialogState[this.state]);
     }
-    protected _allowAppendChild(member: VPresenter): boolean {
+    protected _allowAppendChild(member: View): boolean {
         if (member instanceof Dialog) {
             if (member.state != DialogState.Closed) { return false; }
         }
@@ -1012,7 +1012,7 @@ export abstract class Dialog extends VPresenter {
     onWindowResize(e:Event){
 
     }
-    appendChild(child: VPresenter): boolean {
+    appendChild(child: View): boolean {
         if (child.parent == this) { return false; }
         if (!this._checkAppendChild(child)) {
             return false;
@@ -1030,18 +1030,18 @@ export abstract class Dialog extends VPresenter {
         }
         return super.appendChild(child, true);
     }
-    protected _appendView(member: VPresenter): void {
+    protected _appendView(member: View): void {
         if (member instanceof Dialog) {
-            this.view.appendChild(member.view);
+            this.viewComponent.appendChild(member.viewComponent);
         } else {
-            this.body.appendChild(member.view);
+            this.body.appendChild(member.viewComponent);
         }
     }
-    protected _removeView(member: VPresenter): void {
+    protected _removeView(member: View): void {
         if (member instanceof Dialog) {
-            this.view.removeChild(member.view);
+            this.viewComponent.removeChild(member.viewComponent);
         } else {
-            this.body.removeChild(member.view);
+            this.body.removeChild(member.viewComponent);
         }
     }
     
@@ -1052,12 +1052,12 @@ export abstract class Dialog extends VPresenter {
 export class Application extends Dialog {
 
     public initTime = Date.now();
-    constructor(rootUri: Cmd | null, els: { view: ILayerView, dialog: View, mask: View, body: View }, config?: IDialogConfigOptions) {
+    constructor(rootUri: Cmd | null, els: { component: ILayerComponent, dialog: Component, mask: Component, body: Component }, config?: IDialogConfigOptions) {
         super(els, config);
-        this.view.removeClass("pt-layer").addClass("pt-application");
+        this.viewComponent.removeClass("pt-layer").addClass("pt-application");
         this._setZIndex(0);
         this._setState(DialogState.Focused);
-        this.view.addClass("pt-topDialog");
+        this.viewComponent.addClass("pt-topDialog");
         taskCounter.addListener(TaskCountEvent.Added, e => {
             this.mask.addClass("pt-show");
         }).addListener(TaskCountEvent.Completed, e => {
@@ -1675,13 +1675,13 @@ bindEventListener(window, 'resize', function (e) {
 export function setConfig(data: {
     namespace?: string,
     application?: Application,
-    createVPView?: (data: any) => VPView;
+    createViewComponent?: (data: any) => ViewComponent;
 }): void {
     if (data.namespace) {
         namespace = data.namespace;
     }
-    if (data.createVPView) {
-        createVPView = data.createVPView;
+    if (data.createViewComponent) {
+        createViewComponent = data.createViewComponent;
     }
     if (data.application) {
         application = data.application;
@@ -1697,9 +1697,9 @@ function setTopDialog(dialog: Dialog) {
             application.history.push(new openDialogCmd());
             application.history.go(-1);
         }
-        _topDialog && _topDialog.view.removeClass("pt-topDialog");
+        _topDialog && _topDialog.viewComponent.removeClass("pt-topDialog");
         _topDialog = dialog;
-        _topDialog.view.addClass("pt-topDialog");
+        _topDialog.viewComponent.addClass("pt-topDialog");
     }
 }
 export function getTopDialog(): Dialog {
