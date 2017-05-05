@@ -773,8 +773,8 @@ export abstract class Dialog extends View {
 
     public readonly config: IDialogConfig = DialogConfig;
 
-    constructor(els: { component: ILayerComponent, dialog: Component, mask: Component, body: Component }, config?: IDialogConfigOptions) {
-        super(els.component, undefined);
+    constructor(els: { viewComponent: ILayerComponent, dialog: Component, mask: Component, body: Component }, config?: IDialogConfigOptions) {
+        super(els.viewComponent, undefined);
         this.dialog = els.dialog;
         this.mask = els.mask;
         this.body = els.body;
@@ -1052,7 +1052,7 @@ export abstract class Dialog extends View {
 export class Application extends Dialog {
 
     public initTime = Date.now();
-    constructor(rootUri: Cmd | null, els: { component: ILayerComponent, dialog: Component, mask: Component, body: Component }, config?: IDialogConfigOptions) {
+    constructor(rootUri: Cmd | null, els: { viewComponent: ILayerComponent, dialog: Component, mask: Component, body: Component }, config?: IDialogConfigOptions) {
         super(els, config);
         this.viewComponent.removeClass("pt-layer").addClass("pt-application");
         this._setZIndex(0);

@@ -201,7 +201,7 @@ export declare abstract class Dialog extends View {
     private _zindex;
     readonly config: IDialogConfig;
     constructor(els: {
-        component: ILayerComponent;
+        viewComponent: ILayerComponent;
         dialog: Component;
         mask: Component;
         body: Component;
@@ -238,7 +238,7 @@ export declare abstract class Dialog extends View {
 export declare class Application extends Dialog {
     initTime: number;
     constructor(rootUri: Cmd | null, els: {
-        component: ILayerComponent;
+        viewComponent: ILayerComponent;
         dialog: Component;
         mask: Component;
         body: Component;

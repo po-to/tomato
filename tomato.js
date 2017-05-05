@@ -625,7 +625,7 @@ define(["require", "exports"], function (require, exports) {
     var Dialog = (function (_super) {
         __extends(Dialog, _super);
         function Dialog(els, config) {
-            var _this = _super.call(this, els.component, undefined) || this;
+            var _this = _super.call(this, els.viewComponent, undefined) || this;
             _this.history = new History();
             _this.state = DialogState.Closed;
             _this.content = null;
