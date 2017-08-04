@@ -2,7 +2,7 @@
 tomato是一个客户端JS框架，主要依据前文所提到的“视图组织”思路，提供抽象接口和部分基类。一般不直接使用，你可以跟据具体项目来扩展和实现它。Poto中也提供了多个基于其扩展的框架，如：tomato-jquery、tomato-vue等。tomato采用Typescript开发，编译成为ES5标准的JS，如果你需要效率更高的ES6语法，请自行下载源码编译。
 
 # 项目主页
-[po-to.org](po-to.org/page/articles/tomato/s01)
+[www.po-to.org](http://www.po-to.org/page/articles/tomato/s01)
 
 # 兼容
 tomato采用“优雅降级”的理念兼容IE8及以上浏览器，在主流现代浏览器中均有很好的用户体验。 
@@ -20,7 +20,7 @@ Tomato依赖于两个环境对象：
 使用AMD标准模块化，推荐使用requireJS引入
 
 # 文档
-[API](po-to.org/static/api/tomato)
+[API](http://www.po-to.org/static/api/tomato)
 
 #设置
 Tomato中的设置主要通过其对外函数setConfig()来实现：

@@ -1184,7 +1184,7 @@ img { max-width: 100%; }
 				<div class="tsd-signature tsd-kind-icon">View<wbr>Store<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L658">tomato.ts:658</a></li>
+						<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L658">tomato.ts:658</a></li>
 					</ul>
 				</aside>
 				<div class="tsd-type-declaration">
@@ -1202,7 +1202,7 @@ img { max-width: 100%; }
 				<div class="tsd-signature tsd-kind-icon">_invalid<wbr>Layout<wbr>Timer<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> =&nbsp;0</span></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L130">tomato.ts:130</a></li>
+						<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L130">tomato.ts:130</a></li>
 					</ul>
 				</aside>
 			</section>
@@ -1212,7 +1212,7 @@ img { max-width: 100%; }
 				<div class="tsd-signature tsd-kind-icon">_top<wbr>Dialog<span class="tsd-signature-symbol">:</span> <a href="../classes/_tomato_.dialog.html" class="tsd-signature-type">Dialog</a></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L1782">tomato.ts:1782</a></li>
+						<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L1782">tomato.ts:1782</a></li>
 					</ul>
 				</aside>
 			</section>
@@ -1222,7 +1222,7 @@ img { max-width: 100%; }
 				<div class="tsd-signature tsd-kind-icon">application<span class="tsd-signature-symbol">:</span> <a href="../classes/_tomato_.application.html" class="tsd-signature-type">Application</a><span class="tsd-signature-symbol"> =&nbsp;{} as any</span></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L1259">tomato.ts:1259</a></li>
+						<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L1259">tomato.ts:1259</a></li>
 					</ul>
 				</aside>
 			</section>
@@ -1232,7 +1232,7 @@ img { max-width: 100%; }
 				<div class="tsd-signature tsd-kind-icon">autoID<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> =&nbsp;0</span></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L35">tomato.ts:35</a></li>
+						<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L35">tomato.ts:35</a></li>
 					</ul>
 				</aside>
 			</section>
@@ -1242,7 +1242,7 @@ img { max-width: 100%; }
 				<div class="tsd-signature tsd-kind-icon">get<wbr>Any<wbr>View<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">(Anonymous function)</span><span class="tsd-signature-symbol"> =&nbsp;(function (ViewStore) {function buildViewComponent(data: any): IViewComponent {return createViewComponent(data);}function initView(con: Function, component: IViewComponent, url: string, parent:View|undefined,inited:boolean): View | Promise&lt;View&gt; {let vp: View &#x3D; new (con as any)(component, parent, url);if(inited){if(vp.initialization){return vp.initialization;}else{return vp;}}else{return vp;}}function buildView(component: IViewComponent, url: string, parent:View|undefined,inited:boolean): View | Promise&lt;View&gt; {if (!isViewComponent(component)) {console.log(component);throw &quot;is not a IViewComponent&quot;;}let conPath &#x3D; component.getVCON();if (conPath) {let result &#x3D; syncRequire(conPath);if (result instanceof Promise) {return result.then(function (data) {return initView(data, component, url,parent,inited);})} else {return initView(result, component, url,parent,inited);}} else {return initView(View, component, url,parent,inited);}}function returnResult(component: IViewComponent | null, url: string, parent:View|undefined,inited:boolean): View | Promise&lt;View&gt; {if (component) {return buildView(component, url, parent, inited);} else if (url) {let result &#x3D; syncRequire(url);if (result instanceof Promise) {return result.then(function (data) {return buildView(buildViewComponent(data), url, parent, inited);})} else {return buildView(buildViewComponent(result), url, parent, inited);}} else {throw &#x27;not found component and url !&#x27;}}return function (data: string | IViewComponent, parent:View|undefined &#x3D; undefined, inited:boolean&#x3D;true): View | Promise&lt;View&gt; {let url: string;let id: string;let component: IViewComponent | null;if (typeof data !&#x3D; &quot;string&quot;) {component &#x3D; data;id &#x3D; data.getVID();} else {component &#x3D; null;id &#x3D; data;}url &#x3D; id;id &#x3D; id.split(&quot;?&quot;)[0].replace(/\/+$/, &quot;&quot;);let cacheData: Promise&lt;View&gt; | View | null &#x3D; ViewStore[id];if (cacheData instanceof View) {return cacheData;} else if (cacheData instanceof Promise) {return cacheData;} else {let result &#x3D; returnResult(component, url, parent, inited);if (result instanceof Promise) {ViewStore[id] &#x3D; result;result[&#x27;catch&#x27;](function (error) {delete ViewStore[id];console.log(url + &quot;:&quot; + error);})taskCounter.addItem(result, &#x27;load:&#x27; + url);}return result;}}})(ViewStore)</span></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L674">tomato.ts:674</a></li>
+						<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L674">tomato.ts:674</a></li>
 					</ul>
 				</aside>
 			</section>
@@ -1252,7 +1252,7 @@ img { max-width: 100%; }
 				<div class="tsd-signature tsd-kind-icon">namespace<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> =&nbsp;&quot;po-to/tomato&quot;</span></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L36">tomato.ts:36</a></li>
+						<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L36">tomato.ts:36</a></li>
 					</ul>
 				</aside>
 			</section>
@@ -1262,7 +1262,7 @@ img { max-width: 100%; }
 				<div class="tsd-signature tsd-kind-icon">require<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">function</span></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L6">tomato.ts:6</a></li>
+						<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L6">tomato.ts:6</a></li>
 					</ul>
 				</aside>
 				<div class="tsd-type-declaration">
@@ -1335,7 +1335,7 @@ img { max-width: 100%; }
 				<div class="tsd-signature tsd-kind-icon">resize<wbr>Timer<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">any</span></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L1753">tomato.ts:1753</a></li>
+						<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L1753">tomato.ts:1753</a></li>
 					</ul>
 				</aside>
 			</section>
@@ -1345,7 +1345,7 @@ img { max-width: 100%; }
 				<div class="tsd-signature tsd-kind-icon">task<wbr>Counter<span class="tsd-signature-symbol">:</span> <a href="../classes/_tomato_.taskcounter.html" class="tsd-signature-type">TaskCounter</a><span class="tsd-signature-symbol"> =&nbsp;new TaskCounter(3)</span></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L266">tomato.ts:266</a></li>
+						<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L266">tomato.ts:266</a></li>
 					</ul>
 				</aside>
 			</section>
@@ -1362,7 +1362,7 @@ img { max-width: 100%; }
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L24">tomato.ts:24</a></li>
+								<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L24">tomato.ts:24</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-type-parameters-title">Type parameters</h4>
@@ -1394,7 +1394,7 @@ img { max-width: 100%; }
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L764">tomato.ts:764</a></li>
+								<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L764">tomato.ts:764</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-type-parameters-title">Type parameters</h4>
@@ -1429,7 +1429,7 @@ img { max-width: 100%; }
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L1300">tomato.ts:1300</a></li>
+								<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L1300">tomato.ts:1300</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-parameters-title">Parameters</h4>
@@ -1458,7 +1458,7 @@ img { max-width: 100%; }
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L284">tomato.ts:284</a></li>
+								<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L284">tomato.ts:284</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-parameters-title">Parameters</h4>
@@ -1481,7 +1481,7 @@ img { max-width: 100%; }
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L117">tomato.ts:117</a></li>
+								<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L117">tomato.ts:117</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-type-parameters-title">Type parameters</h4>
@@ -1510,7 +1510,7 @@ img { max-width: 100%; }
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L8">tomato.ts:8</a></li>
+								<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L8">tomato.ts:8</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-type-parameters-title">Type parameters</h4>
@@ -1563,7 +1563,7 @@ img { max-width: 100%; }
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L16">tomato.ts:16</a></li>
+								<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L16">tomato.ts:16</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-type-parameters-title">Type parameters</h4>
@@ -1613,7 +1613,7 @@ img { max-width: 100%; }
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L1795">tomato.ts:1795</a></li>
+								<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L1795">tomato.ts:1795</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-returns-title">Returns <a href="../classes/_tomato_.dialog.html" class="tsd-signature-type">Dialog</a></h4>
@@ -1630,7 +1630,7 @@ img { max-width: 100%; }
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L772">tomato.ts:772</a></li>
+								<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L772">tomato.ts:772</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-parameters-title">Parameters</h4>
@@ -1662,7 +1662,7 @@ img { max-width: 100%; }
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L1686">tomato.ts:1686</a></li>
+								<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L1686">tomato.ts:1686</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
@@ -1679,7 +1679,7 @@ img { max-width: 100%; }
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L132">tomato.ts:132</a></li>
+								<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L132">tomato.ts:132</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-parameters-title">Parameters</h4>
@@ -1702,7 +1702,7 @@ img { max-width: 100%; }
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L281">tomato.ts:281</a></li>
+								<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L281">tomato.ts:281</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-parameters-title">Parameters</h4>
@@ -1725,7 +1725,7 @@ img { max-width: 100%; }
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L1765">tomato.ts:1765</a></li>
+								<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L1765">tomato.ts:1765</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-parameters-title">Parameters</h4>
@@ -1777,7 +1777,7 @@ img { max-width: 100%; }
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L1784">tomato.ts:1784</a></li>
+								<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L1784">tomato.ts:1784</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-parameters-title">Parameters</h4>
@@ -1800,7 +1800,7 @@ img { max-width: 100%; }
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L761">tomato.ts:761</a></li>
+								<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L761">tomato.ts:761</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-type-parameters-title">Type parameters</h4>
@@ -1835,7 +1835,7 @@ img { max-width: 100%; }
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L660">tomato.ts:660</a></li>
+								<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L660">tomato.ts:660</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-parameters-title">Parameters</h4>
@@ -1861,7 +1861,7 @@ img { max-width: 100%; }
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L1307">tomato.ts:1307</a></li>
+								<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L1307">tomato.ts:1307</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-parameters-title">Parameters</h4>
@@ -1889,7 +1889,7 @@ img { max-width: 100%; }
 				<div class="tsd-signature tsd-kind-icon">Cmd<wbr>Event<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L68">tomato.ts:68</a></li>
+						<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L68">tomato.ts:68</a></li>
 					</ul>
 				</aside>
 				<section class="tsd-panel tsd-member tsd-kind-variable tsd-parent-kind-object-literal">
@@ -1898,7 +1898,7 @@ img { max-width: 100%; }
 					<div class="tsd-signature tsd-kind-icon">Cmd<wbr>Failure<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> =&nbsp;&quot;CmdEvent.CmdFailure&quot;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L72">tomato.ts:72</a></li>
+							<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L72">tomato.ts:72</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -1908,7 +1908,7 @@ img { max-width: 100%; }
 					<div class="tsd-signature tsd-kind-icon">Cmd<wbr>Success<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> =&nbsp;&quot;CmdEvent.CmdSuccess&quot;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L71">tomato.ts:71</a></li>
+							<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L71">tomato.ts:71</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -1918,7 +1918,7 @@ img { max-width: 100%; }
 					<div class="tsd-signature tsd-kind-icon">Complete<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> =&nbsp;&quot;CmdEvent.Complete&quot;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L75">tomato.ts:75</a></li>
+							<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L75">tomato.ts:75</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -1928,7 +1928,7 @@ img { max-width: 100%; }
 					<div class="tsd-signature tsd-kind-icon">Failure<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> =&nbsp;&quot;CmdEvent.Failure&quot;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L73">tomato.ts:73</a></li>
+							<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L73">tomato.ts:73</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -1938,7 +1938,7 @@ img { max-width: 100%; }
 					<div class="tsd-signature tsd-kind-icon">Item<wbr>Failure<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> =&nbsp;&quot;CmdEvent.ItemFailure&quot;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L70">tomato.ts:70</a></li>
+							<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L70">tomato.ts:70</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -1948,7 +1948,7 @@ img { max-width: 100%; }
 					<div class="tsd-signature tsd-kind-icon">Item<wbr>Success<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> =&nbsp;&quot;CmdEvent.ItemSuccess&quot;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L69">tomato.ts:69</a></li>
+							<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L69">tomato.ts:69</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -1958,7 +1958,7 @@ img { max-width: 100%; }
 					<div class="tsd-signature tsd-kind-icon">Overflow<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> =&nbsp;&quot;CmdEvent.Overflow&quot;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L76">tomato.ts:76</a></li>
+							<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L76">tomato.ts:76</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -1968,7 +1968,7 @@ img { max-width: 100%; }
 					<div class="tsd-signature tsd-kind-icon">Success<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> =&nbsp;&quot;CmdEvent.Success&quot;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L74">tomato.ts:74</a></li>
+							<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L74">tomato.ts:74</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -1979,7 +1979,7 @@ img { max-width: 100%; }
 				<div class="tsd-signature tsd-kind-icon">Dialog<wbr>Config<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L828">tomato.ts:828</a></li>
+						<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L828">tomato.ts:828</a></li>
 					</ul>
 				</aside>
 				<section class="tsd-panel tsd-member tsd-kind-variable tsd-parent-kind-object-literal tsd-is-not-exported">
@@ -1988,7 +1988,7 @@ img { max-width: 100%; }
 					<div class="tsd-signature tsd-kind-icon">class<wbr>Name<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> =&nbsp;&quot;&quot;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L829">tomato.ts:829</a></li>
+							<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L829">tomato.ts:829</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -1998,7 +1998,7 @@ img { max-width: 100%; }
 					<div class="tsd-signature tsd-kind-icon">effect<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> =&nbsp;DialogEffect.scale</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L838">tomato.ts:838</a></li>
+							<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L838">tomato.ts:838</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -2008,7 +2008,7 @@ img { max-width: 100%; }
 					<div class="tsd-signature tsd-kind-icon">fixed<wbr>Background<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol"> =&nbsp;true</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L831">tomato.ts:831</a></li>
+							<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L831">tomato.ts:831</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -2018,7 +2018,7 @@ img { max-width: 100%; }
 					<div class="tsd-signature tsd-kind-icon">height<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> =&nbsp;&quot;50%&quot;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L835">tomato.ts:835</a></li>
+							<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L835">tomato.ts:835</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -2028,7 +2028,7 @@ img { max-width: 100%; }
 					<div class="tsd-signature tsd-kind-icon">masked<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol"> =&nbsp;false</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L830">tomato.ts:830</a></li>
+							<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L830">tomato.ts:830</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -2038,7 +2038,7 @@ img { max-width: 100%; }
 					<div class="tsd-signature tsd-kind-icon">offsetX<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> =&nbsp;&quot;&quot;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L836">tomato.ts:836</a></li>
+							<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L836">tomato.ts:836</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -2048,7 +2048,7 @@ img { max-width: 100%; }
 					<div class="tsd-signature tsd-kind-icon">offsetY<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> =&nbsp;&quot;&quot;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L837">tomato.ts:837</a></li>
+							<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L837">tomato.ts:837</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -2058,7 +2058,7 @@ img { max-width: 100%; }
 					<div class="tsd-signature tsd-kind-icon">width<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> =&nbsp;&quot;50%&quot;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L834">tomato.ts:834</a></li>
+							<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L834">tomato.ts:834</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -2068,7 +2068,7 @@ img { max-width: 100%; }
 					<div class="tsd-signature tsd-kind-icon">x<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> =&nbsp;DialogPosition.center</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L832">tomato.ts:832</a></li>
+							<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L832">tomato.ts:832</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -2078,7 +2078,7 @@ img { max-width: 100%; }
 					<div class="tsd-signature tsd-kind-icon">y<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> =&nbsp;DialogPosition.middle</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L833">tomato.ts:833</a></li>
+							<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L833">tomato.ts:833</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -2089,7 +2089,7 @@ img { max-width: 100%; }
 				<div class="tsd-signature tsd-kind-icon">Dialog<wbr>Effect<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L817">tomato.ts:817</a></li>
+						<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L817">tomato.ts:817</a></li>
 					</ul>
 				</aside>
 				<section class="tsd-panel tsd-member tsd-kind-variable tsd-parent-kind-object-literal">
@@ -2098,7 +2098,7 @@ img { max-width: 100%; }
 					<div class="tsd-signature tsd-kind-icon">scale<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> =&nbsp;&quot;scale&quot;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L818">tomato.ts:818</a></li>
+							<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L818">tomato.ts:818</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -2109,7 +2109,7 @@ img { max-width: 100%; }
 				<div class="tsd-signature tsd-kind-icon">Dialog<wbr>Event<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L62">tomato.ts:62</a></li>
+						<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L62">tomato.ts:62</a></li>
 					</ul>
 				</aside>
 				<section class="tsd-panel tsd-member tsd-kind-variable tsd-parent-kind-object-literal">
@@ -2118,7 +2118,7 @@ img { max-width: 100%; }
 					<div class="tsd-signature tsd-kind-icon">Blured<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> =&nbsp;&quot;DialogEvent.Blured&quot;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L64">tomato.ts:64</a></li>
+							<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L64">tomato.ts:64</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -2128,7 +2128,7 @@ img { max-width: 100%; }
 					<div class="tsd-signature tsd-kind-icon">Closed<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> =&nbsp;&quot;DialogEvent.Closed&quot;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L65">tomato.ts:65</a></li>
+							<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L65">tomato.ts:65</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -2138,7 +2138,7 @@ img { max-width: 100%; }
 					<div class="tsd-signature tsd-kind-icon">Focused<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> =&nbsp;&quot;DialogEvent.Focused&quot;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L63">tomato.ts:63</a></li>
+							<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L63">tomato.ts:63</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -2149,7 +2149,7 @@ img { max-width: 100%; }
 				<div class="tsd-signature tsd-kind-icon">Dialog<wbr>Position<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L820">tomato.ts:820</a></li>
+						<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L820">tomato.ts:820</a></li>
 					</ul>
 				</aside>
 				<section class="tsd-panel tsd-member tsd-kind-variable tsd-parent-kind-object-literal">
@@ -2158,7 +2158,7 @@ img { max-width: 100%; }
 					<div class="tsd-signature tsd-kind-icon">bottom<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> =&nbsp;&quot;bottom&quot;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L825">tomato.ts:825</a></li>
+							<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L825">tomato.ts:825</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -2168,7 +2168,7 @@ img { max-width: 100%; }
 					<div class="tsd-signature tsd-kind-icon">center<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> =&nbsp;&quot;center&quot;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L823">tomato.ts:823</a></li>
+							<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L823">tomato.ts:823</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -2178,7 +2178,7 @@ img { max-width: 100%; }
 					<div class="tsd-signature tsd-kind-icon">left<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> =&nbsp;&quot;left&quot;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L821">tomato.ts:821</a></li>
+							<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L821">tomato.ts:821</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -2188,7 +2188,7 @@ img { max-width: 100%; }
 					<div class="tsd-signature tsd-kind-icon">middle<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> =&nbsp;&quot;middle&quot;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L826">tomato.ts:826</a></li>
+							<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L826">tomato.ts:826</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -2198,7 +2198,7 @@ img { max-width: 100%; }
 					<div class="tsd-signature tsd-kind-icon">right<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> =&nbsp;&quot;right&quot;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L822">tomato.ts:822</a></li>
+							<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L822">tomato.ts:822</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -2208,7 +2208,7 @@ img { max-width: 100%; }
 					<div class="tsd-signature tsd-kind-icon">top<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> =&nbsp;&quot;top&quot;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L824">tomato.ts:824</a></li>
+							<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L824">tomato.ts:824</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -2219,7 +2219,7 @@ img { max-width: 100%; }
 				<div class="tsd-signature tsd-kind-icon">Task<wbr>Count<wbr>Event<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L38">tomato.ts:38</a></li>
+						<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L38">tomato.ts:38</a></li>
 					</ul>
 				</aside>
 				<section class="tsd-panel tsd-member tsd-kind-variable tsd-parent-kind-object-literal">
@@ -2228,7 +2228,7 @@ img { max-width: 100%; }
 					<div class="tsd-signature tsd-kind-icon">Added<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> =&nbsp;&quot;TaskCountEvent.Added&quot;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L39">tomato.ts:39</a></li>
+							<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L39">tomato.ts:39</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -2238,7 +2238,7 @@ img { max-width: 100%; }
 					<div class="tsd-signature tsd-kind-icon">Busy<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> =&nbsp;&quot;TaskCountEvent.Busy&quot;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L41">tomato.ts:41</a></li>
+							<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L41">tomato.ts:41</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -2248,7 +2248,7 @@ img { max-width: 100%; }
 					<div class="tsd-signature tsd-kind-icon">Completed<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> =&nbsp;&quot;TaskCountEvent.Completed&quot;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L40">tomato.ts:40</a></li>
+							<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L40">tomato.ts:40</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -2258,7 +2258,7 @@ img { max-width: 100%; }
 					<div class="tsd-signature tsd-kind-icon">Free<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> =&nbsp;&quot;TaskCountEvent.Free&quot;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L42">tomato.ts:42</a></li>
+							<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L42">tomato.ts:42</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -2269,7 +2269,7 @@ img { max-width: 100%; }
 				<div class="tsd-signature tsd-kind-icon">View<wbr>Event<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span></div>
 				<aside class="tsd-sources">
 					<ul>
-						<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L45">tomato.ts:45</a></li>
+						<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L45">tomato.ts:45</a></li>
 					</ul>
 				</aside>
 				<section class="tsd-panel tsd-member tsd-kind-variable tsd-parent-kind-object-literal">
@@ -2278,7 +2278,7 @@ img { max-width: 100%; }
 					<div class="tsd-signature tsd-kind-icon">Child<wbr>Appended<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> =&nbsp;&quot;ViewEvent.ChildAppended&quot;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L48">tomato.ts:48</a></li>
+							<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L48">tomato.ts:48</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -2288,7 +2288,7 @@ img { max-width: 100%; }
 					<div class="tsd-signature tsd-kind-icon">Child<wbr>Removed<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> =&nbsp;&quot;ViewEvent.ChildRemoved&quot;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L49">tomato.ts:49</a></li>
+							<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L49">tomato.ts:49</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -2298,7 +2298,7 @@ img { max-width: 100%; }
 					<div class="tsd-signature tsd-kind-icon">Inited<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> =&nbsp;&quot;ViewEvent.Inited&quot;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L50">tomato.ts:50</a></li>
+							<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L50">tomato.ts:50</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -2308,7 +2308,7 @@ img { max-width: 100%; }
 					<div class="tsd-signature tsd-kind-icon">Installed<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> =&nbsp;&quot;ViewEvent.Installed&quot;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L46">tomato.ts:46</a></li>
+							<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L46">tomato.ts:46</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -2318,7 +2318,7 @@ img { max-width: 100%; }
 					<div class="tsd-signature tsd-kind-icon">Uninstalled<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> =&nbsp;&quot;ViewEvent.Uninstalled&quot;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/po-to/tomato/blob/5619772/src/tomato.ts#L47">tomato.ts:47</a></li>
+							<li>Defined in <a href="https://github.com/po-to/tomato/blob/3bec25e/src/tomato.ts#L47">tomato.ts:47</a></li>
 						</ul>
 					</aside>
 				</section>
