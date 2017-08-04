@@ -1,10 +1,16 @@
-var __extends = (this && this.__extends) || function (d, b) {
-    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
-    function __() { this.constructor = d; }
-    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-};
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
 define(["require", "exports"], function (require, exports) {
     "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
     function findInArray(arr, fun) {
         for (var _i = 0, arr_1 = arr; _i < arr_1.length; _i++) {
             var item = arr_1[_i];
@@ -38,8 +44,7 @@ define(["require", "exports"], function (require, exports) {
         return target;
     }
     var autoID = 0;
-    var namespace = 'po-to/tomato';
-    exports.namespace = namespace;
+    exports.namespace = 'po-to/tomato';
     exports.TaskCountEvent = {
         Added: "TaskCountEvent.Added",
         Completed: "TaskCountEvent.Completed",
@@ -47,11 +52,11 @@ define(["require", "exports"], function (require, exports) {
         Free: "TaskCountEvent.Free"
     };
     exports.ViewEvent = {
-        Installed: "CPresenterEvent.Installed",
-        Uninstalled: "CPresenterEvent.Uninstalled",
-        ChildAppended: "CPresenterEvent.ChildAppended",
-        ChildRemoved: "CPresenterEvent.ChildRemoved",
-        Resized: "CPresenterEvent.Resized"
+        Installed: "ViewEvent.Installed",
+        Uninstalled: "ViewEvent.Uninstalled",
+        ChildAppended: "ViewEvent.ChildAppended",
+        ChildRemoved: "ViewEvent.ChildRemoved",
+        Inited: "ViewEvent.Inited",
     };
     var PropState;
     (function (PropState) {
@@ -70,6 +75,8 @@ define(["require", "exports"], function (require, exports) {
     exports.CmdEvent = {
         ItemSuccess: "CmdEvent.ItemSuccess",
         ItemFailure: "CmdEvent.ItemFailure",
+        CmdSuccess: "CmdEvent.CmdSuccess",
+        CmdFailure: "CmdEvent.CmdFailure",
         Failure: "CmdEvent.Failure",
         Success: "CmdEvent.Success",
         Complete: "CmdEvent.Complete",
@@ -81,12 +88,30 @@ define(["require", "exports"], function (require, exports) {
         SizeDependOn[SizeDependOn["parent"] = 1] = "parent";
     })(SizeDependOn = exports.SizeDependOn || (exports.SizeDependOn = {}));
     var PEvent = (function () {
+        /**
+         * 事件构造函数
+         * @param name 事件名称
+         * @param data 事件要传递的数据
+         * @param bubbling 事件是否向上冒泡
+         */
         function PEvent(name, data, bubbling) {
             if (bubbling === void 0) { bubbling = false; }
             this.name = name;
             this.data = data;
             this.bubbling = bubbling;
         }
+        /**
+         * 设置事件的原始派发者
+         */
+        PEvent.prototype.setTarget = function (target) {
+            this.target = target;
+        };
+        /**
+         * 设置事件的当前冒泡派发者
+         */
+        PEvent.prototype.setCurrentTarget = function (target) {
+            this.currentTarget = target;
+        };
         return PEvent;
     }());
     exports.PEvent = PEvent;
@@ -101,7 +126,7 @@ define(["require", "exports"], function (require, exports) {
             return _this;
         }
         PError.prototype.getNamespace = function () {
-            return namespace;
+            return exports.namespace;
         };
         return PError;
     }(Error));
@@ -123,18 +148,31 @@ define(["require", "exports"], function (require, exports) {
         if (!_invalidLayoutTimer) {
             _invalidLayoutTimer = setTimeout(function () {
                 _invalidLayoutTimer = 0;
-                application.eachChildren(function (vp) {
+                exports.application.eachChildren(function (vp) {
                     vp.updateProp();
                 });
             }, 0);
         }
     }
     exports.invalidProp = invalidProp;
+    /**
+     *我们知道浏览器中的Dom对象可以派发事件，而对于一个JS对象却没有原生的事件机制，为此，tomato中的PDispatcher补充了这一点。tomato.PDispatcher是个事件派发的基类，它和所有继承于它的子类都可以实现简单的事件派发。
+     */
     var PDispatcher = (function () {
+        /**
+         * 事件构造函数
+         * @param parent PDispatcher是有父子层级关系的，类似于Dom事件，当一个事件对象具有“bubbling冒泡”属性时，在其本身派发完事件之后，如果存在parent，则parent继续派发此事件
+         */
         function PDispatcher(parent) {
             this.parent = parent;
+            /** 该对象所有侦听函数的集合 */
             this._handlers = {};
         }
+        /**
+         * 类似于Dom物件的addEventListener，添加ename事件的侦听函数
+         * @param ename 要侦听的事件名
+         * @param handler 事件回调函数
+         */
         PDispatcher.prototype.addListener = function (ename, handler) {
             var dictionary = this._handlers[ename];
             if (!dictionary) {
@@ -143,6 +181,11 @@ define(["require", "exports"], function (require, exports) {
             dictionary.push(handler);
             return this;
         };
+        /**
+         * 类似于Dom物件的removeEventListener，移除该物件上侦听ename的指定handler
+         * @param ename 要移除侦听的事件名，如果不传ename表示移除该物件上所有侦听函数
+         * @param handler 要移除侦听的事件回调函数，如果不传handler表示移除该物件上ename的所有侦听函数
+         */
         PDispatcher.prototype.removeListener = function (ename, handler) {
             if (!ename) {
                 emptyObject(this._handlers);
@@ -167,25 +210,27 @@ define(["require", "exports"], function (require, exports) {
             }
             return this;
         };
-        PDispatcher.prototype.dispatch = function (e) {
-            if (!e.target) {
-                e.target = this;
-                e.currentTarget = this;
+        /**
+         * 派发指定的事件
+         * @param evt 要派发的事件
+         */
+        PDispatcher.prototype.dispatch = function (evt) {
+            if (!evt.target) {
+                evt.setTarget(this);
             }
-            var dictionary = this._handlers[e.name];
+            evt.setCurrentTarget(this);
+            var dictionary = this._handlers[evt.name];
             if (dictionary) {
                 for (var i = 0, k = dictionary.length; i < k; i++) {
-                    dictionary[i](e);
+                    dictionary[i](evt);
                 }
             }
-            if (this.parent && e.bubbling) {
-                var evt = new PEvent(e.name, e.data, e.bubbling);
-                evt.target = evt.target;
-                evt.currentTarget = this;
+            if (this.parent && evt.bubbling) {
                 this.parent.dispatch(evt);
             }
             return this;
         };
+        /** parent属性为readonly的，要设置parent请使用此方法 */
         PDispatcher.prototype.setParent = function (parent) {
             this.parent = parent;
             return this;
@@ -219,7 +264,7 @@ define(["require", "exports"], function (require, exports) {
                     this._timer = window.setTimeout(function () {
                         _this._timer = 0;
                         if (_this.list.length > 0 && _this.state == TaskCounterState.Free) {
-                            _this.state = exports.TaskCountEvent.Busy;
+                            _this.state = TaskCounterState.Busy;
                             _this.dispatch(new PEvent(exports.TaskCountEvent.Busy));
                         }
                     }, this.deferSecond * 1000);
@@ -238,7 +283,7 @@ define(["require", "exports"], function (require, exports) {
                         this._timer = 0;
                     }
                     if (this.state == TaskCounterState.Busy) {
-                        this.state = exports.TaskCountEvent.Free;
+                        this.state = TaskCounterState.Free;
                         this.dispatch(new PEvent(exports.TaskCountEvent.Free));
                     }
                 }
@@ -248,8 +293,7 @@ define(["require", "exports"], function (require, exports) {
         return TaskCounter;
     }(PDispatcher));
     exports.TaskCounter = TaskCounter;
-    var taskCounter = new TaskCounter(3);
-    exports.taskCounter = taskCounter;
+    exports.taskCounter = new TaskCounter(3);
     function isViewComponent(data) {
         return (typeof data.getVID == "function") && (typeof data.getVCON == "function") && (typeof data.setVID == "function") && (typeof data.getSUBS == "function") && (typeof data.removeChild == "function") && (typeof data.appendChild == "function") && (typeof data.removeClass == "function") && (typeof data.addClass == "function");
     }
@@ -265,6 +309,7 @@ define(["require", "exports"], function (require, exports) {
             _this.vid = "";
             _this._propState = {};
             _this._propValue = {};
+            _this._eventToAction = null;
             if (vid) {
                 _this.vid = vid.split("?")[0].replace(/\/+$/, "");
             }
@@ -278,7 +323,7 @@ define(["require", "exports"], function (require, exports) {
             var _this = this;
             var hasPromise = false;
             var list = this.viewComponent.getSUBS().map(function (component) {
-                var result = exports.getView(component, _this, true);
+                var result = getAnyView(component, _this, true);
                 if (!hasPromise && result instanceof Promise) {
                     hasPromise = true;
                 }
@@ -286,86 +331,109 @@ define(["require", "exports"], function (require, exports) {
             });
             if (!list.length || !hasPromise) {
                 (_a = this.children).push.apply(_a, list);
+                this._inited();
                 return null;
             }
             else {
                 return Promise.all(list).then(function (list) {
                     (_a = _this.children).push.apply(_a, list);
+                    _this._inited();
                     return _this;
                     var _a;
                 });
             }
             var _a;
         };
-        View.prototype._allowInstallTo = function (parent) {
+        View.prototype._inited = function () {
+            this.dispatch(new PEvent(exports.ViewEvent.Inited));
+        };
+        View.prototype._triggerEvent = function (evtName, data, target) {
+            var mapping = this._eventToAction || this;
+            var handler = mapping[evtName];
+            if (typeof (handler) == "function") {
+                return handler.call(this, data, target) ? true : false;
+            }
+            else {
+                return true;
+            }
+        };
+        View.prototype._allowInstallTo = function (parent, options) {
             return true;
         };
-        View.prototype._allowUninstallTo = function (parent) {
+        View.prototype._allowUninstallTo = function (parent, options) {
             return true;
         };
-        View.prototype._allowAppendChild = function (child) {
+        View.prototype._allowAppendChild = function (child, options) {
+            if (child instanceof Dialog) {
+                if (!(this instanceof Dialog)) {
+                    return false;
+                }
+                else if (child.state != DialogState.Closed) {
+                    return false;
+                }
+            }
             return true;
         };
-        View.prototype._allowRemoveChild = function (child) {
+        View.prototype._allowRemoveChild = function (child, options) {
             return true;
         };
-        View.prototype._beforeInstallTo = function (parent) {
+        View.prototype._beforeInstallTo = function (parent, options) {
         };
-        View.prototype._beforeUninstallTo = function (parent) {
+        View.prototype._beforeUninstallTo = function (parent, options) {
         };
-        View.prototype._afterInstallTo = function (parent) {
+        View.prototype._afterInstallTo = function (parent, options) {
         };
-        View.prototype._afterUninstallTo = function (parent) {
+        View.prototype._afterUninstallTo = function (parent, options) {
         };
-        View.prototype._afterRemoveChild = function (member) {
+        View.prototype._afterRemoveChild = function (member, options) {
         };
-        View.prototype._afterAppendChild = function (member) {
+        View.prototype._afterAppendChild = function (member, options) {
         };
-        View.prototype._beforeRemoveChild = function (member) {
+        View.prototype._beforeRemoveChild = function (member, options) {
         };
-        View.prototype._beforeAppendChild = function (member) {
+        View.prototype._beforeAppendChild = function (member, options) {
         };
-        View.prototype._appendView = function (member) {
+        View.prototype._appendViewComponent = function (member, options) {
             this.viewComponent.appendChild(member.viewComponent);
         };
-        View.prototype._removeView = function (member) {
+        View.prototype._removeViewComponent = function (member, options) {
             this.viewComponent.removeChild(member.viewComponent);
         };
-        View.prototype._checkRemoveChild = function (member) {
+        View.prototype._checkRemoveChild = function (member, options) {
             if (member.parent != this) {
                 return true;
             }
-            if (!member._allowUninstallTo(this) ||
-                !this._allowRemoveChild(member)) {
+            if (!member._allowUninstallTo(this, options) ||
+                !this._allowRemoveChild(member, options)) {
                 return false;
             }
             return true;
         };
-        View.prototype.removeChild = function (member, checked) {
+        View.prototype.removeChild = function (member, options, checked) {
             if (member.parent != this) {
                 return false;
             }
-            if (!checked && !this._checkRemoveChild(member)) {
+            if (!checked && !this._checkRemoveChild(member, options)) {
                 return false;
             }
-            this._beforeRemoveChild(member);
-            member._beforeUninstallTo(this);
+            this._beforeRemoveChild(member, options);
+            member._beforeUninstallTo(this, options);
             this.children.splice(this.children.indexOf(member), 1);
-            this._removeView(member);
+            this._removeViewComponent(member, options);
             member.setParent(undefined);
-            this._afterRemoveChild(member);
-            member._afterUninstallTo(this);
-            this.dispatch(new PEvent(exports.ViewEvent.ChildRemoved));
-            member.dispatch(new PEvent(exports.ViewEvent.Uninstalled));
+            this._afterRemoveChild(member, options);
+            member._afterUninstallTo(this, options);
+            this.dispatch(new PEvent(exports.ViewEvent.ChildRemoved, options));
+            member.dispatch(new PEvent(exports.ViewEvent.Uninstalled, options));
             return true;
         };
-        View.prototype._checkAppendChild = function (member) {
+        View.prototype._checkAppendChild = function (member, options) {
             if (member.parent == this) {
                 return true;
             }
-            if (!member._allowInstallTo(this) ||
-                !this._allowAppendChild(member) ||
-                (member.parent && (!member._allowUninstallTo(this) || !member.parent._allowRemoveChild(member)))) {
+            if (!member._allowInstallTo(this, options) ||
+                !this._allowAppendChild(member, options) ||
+                (member.parent && (!member._allowUninstallTo(this, options) || !member.parent._allowRemoveChild(member, options)))) {
                 return false;
             }
             return true;
@@ -378,28 +446,43 @@ define(["require", "exports"], function (require, exports) {
                 }
                 parent = parent.parent;
             }
-            return application;
+            return exports.application;
         };
-        View.prototype.appendChild = function (member, checked) {
+        View.prototype.appendChild = function (member, options, checked) {
             if (member.parent == this) {
                 return false;
             }
-            if (!checked && !this._checkAppendChild(member)) {
+            if (!checked && !this._checkAppendChild(member, options)) {
                 return false;
             }
             if (member.parent) {
-                member.parent.removeChild(member, true);
+                member.parent.removeChild(member, options, true);
             }
-            this._beforeAppendChild(member);
-            member._beforeInstallTo(this);
+            this._beforeAppendChild(member, options);
+            member._beforeInstallTo(this, options);
             member.setParent(this);
             this.children.push(member);
-            this._appendView(member);
-            this._afterAppendChild(member);
-            member._afterInstallTo(this);
-            this.dispatch(new PEvent(exports.ViewEvent.ChildAppended));
-            member.dispatch(new PEvent(exports.ViewEvent.Installed));
+            this._appendViewComponent(member, options);
+            this._afterAppendChild(member, options);
+            member._afterInstallTo(this, options);
+            this.dispatch(new PEvent(exports.ViewEvent.ChildAppended, options));
+            member.dispatch(new PEvent(exports.ViewEvent.Installed, options));
             return true;
+        };
+        View.prototype.replaceChild = function (newChild, oChild, options, checked) {
+            if (newChild.parent == this) {
+                return false;
+            }
+            if (!checked && !this._checkAppendChild(newChild, options)) {
+                return false;
+            }
+            if (oChild && oChild.parent == this) {
+                if (!checked && !this._checkRemoveChild(oChild, options)) {
+                    return false;
+                }
+                this.removeChild(oChild, options, true);
+            }
+            return this.appendChild(newChild, options, true);
         };
         View.prototype.destroy = function () {
             if (this.vid) {
@@ -479,7 +562,7 @@ define(["require", "exports"], function (require, exports) {
             });
         }
     }
-    exports.getView = (function (ViewStore) {
+    var getAnyView = (function (ViewStore) {
         function buildViewComponent(data) {
             return createViewComponent(data);
         }
@@ -500,7 +583,7 @@ define(["require", "exports"], function (require, exports) {
         function buildView(component, url, parent, inited) {
             if (!isViewComponent(component)) {
                 console.log(component);
-                throw "is not a ViewComponent";
+                throw "is not a IViewComponent";
             }
             var conPath = component.getVCON();
             if (conPath) {
@@ -568,7 +651,7 @@ define(["require", "exports"], function (require, exports) {
                         delete ViewStore[id];
                         console.log(url + ":" + error);
                     });
-                    taskCounter.addItem(result, 'load:' + url);
+                    exports.taskCounter.addItem(result, 'load:' + url);
                 }
                 return result;
             }
@@ -577,13 +660,13 @@ define(["require", "exports"], function (require, exports) {
     function syncGetView(data, parent, inited) {
         if (parent === void 0) { parent = undefined; }
         if (inited === void 0) { inited = true; }
-        return exports.getView(data);
+        return getAnyView(data, parent, inited);
     }
     exports.syncGetView = syncGetView;
     function asyncGetView(data, parent, inited) {
         if (parent === void 0) { parent = undefined; }
         if (inited === void 0) { inited = true; }
-        var result = exports.getView(data);
+        var result = getAnyView(data, parent, inited);
         if (result instanceof Promise) {
             return result;
         }
@@ -592,6 +675,12 @@ define(["require", "exports"], function (require, exports) {
         }
     }
     exports.asyncGetView = asyncGetView;
+    function getView(data, parent, inited) {
+        if (parent === void 0) { parent = undefined; }
+        if (inited === void 0) { inited = true; }
+        return getAnyView(data, parent, inited);
+    }
+    exports.getView = getView;
     var DialogState;
     (function (DialogState) {
         DialogState[DialogState["Focused"] = 0] = "Focused";
@@ -628,7 +717,6 @@ define(["require", "exports"], function (require, exports) {
             var _this = _super.call(this, els.viewComponent, undefined) || this;
             _this.history = new History();
             _this.state = DialogState.Closed;
-            _this.content = null;
             _this._dialogList = [];
             _this._zindex = -1;
             _this.config = DialogConfig;
@@ -736,7 +824,7 @@ define(["require", "exports"], function (require, exports) {
             return true;
         };
         Dialog.prototype._checkFocus = function () {
-            if (this == application) {
+            if (this == exports.application) {
                 return true;
             }
             if (!this.parent) {
@@ -769,7 +857,7 @@ define(["require", "exports"], function (require, exports) {
             if (this.state == DialogState.Focused) {
                 var list = parentDialog._dialogList;
                 var dialog = list[list.length - 2];
-                if (dialog && !dialog._allowFocus()) {
+                if (dialog && !dialog._allowFocus(true)) {
                     return false;
                 }
             }
@@ -814,11 +902,13 @@ define(["require", "exports"], function (require, exports) {
                     setTopDialog(this);
                 }
                 this.dispatch(new PEvent(exports.DialogEvent.Focused));
-                if (this.content) {
-                    this.content.eachChildren(function (child) {
-                        child.dispatch(new PEvent(exports.DialogEvent.Focused));
-                    }, true);
-                }
+                this.children.forEach(function (child) {
+                    if (!(child instanceof Dialog)) {
+                        child.eachChildren(function (child) {
+                            child.dispatch(new PEvent(exports.DialogEvent.Focused));
+                        }, true);
+                    }
+                });
             }
             return true;
         };
@@ -843,11 +933,13 @@ define(["require", "exports"], function (require, exports) {
             this._setState(DialogState.Closed);
             this._afterClose();
             this.dispatch(new PEvent(exports.DialogEvent.Closed));
-            if (this.content) {
-                this.content.eachChildren(function (child) {
-                    child.dispatch(new PEvent(exports.DialogEvent.Closed));
-                }, true);
-            }
+            this.children.forEach(function (child) {
+                if (!(child instanceof Dialog)) {
+                    child.eachChildren(function (child) {
+                        child.dispatch(new PEvent(exports.DialogEvent.Closed));
+                    }, true);
+                }
+            });
             focusDialog && focusDialog.focus(true);
             !focusDialog && setTopDialog(parentDialog);
             return true;
@@ -860,50 +952,22 @@ define(["require", "exports"], function (require, exports) {
             this._setState(DialogState.Blured);
             this._afterBlur();
             this.dispatch(new PEvent(exports.DialogEvent.Blured));
-            if (this.content) {
-                this.content.eachChildren(function (child) {
-                    child.dispatch(new PEvent(exports.DialogEvent.Blured));
-                }, true);
-            }
+            this.children.forEach(function (child) {
+                if (!(child instanceof Dialog)) {
+                    child.eachChildren(function (child) {
+                        child.dispatch(new PEvent(exports.DialogEvent.Blured));
+                    }, true);
+                }
+            });
         };
         Dialog.prototype._setState = function (state) {
             this.viewComponent.removeClass("pt-" + DialogState[this.state]);
             this.state = state;
             this.viewComponent.addClass("pt-" + DialogState[this.state]);
         };
-        Dialog.prototype._allowAppendChild = function (member) {
-            if (member instanceof Dialog) {
-                if (member.state != DialogState.Closed) {
-                    return false;
-                }
-            }
-            return true;
-        };
         Dialog.prototype.onWindowResize = function (e) {
         };
-        Dialog.prototype.appendChild = function (child) {
-            if (child.parent == this) {
-                return false;
-            }
-            if (!this._checkAppendChild(child)) {
-                return false;
-            }
-            if (!(child instanceof Dialog)) {
-                if (this.content) {
-                    var member = this.content;
-                    if (member.parent != this) {
-                        return false;
-                    }
-                    if (!this._checkRemoveChild(member)) {
-                        return false;
-                    }
-                    this.removeChild(member, true);
-                }
-                this.content = child;
-            }
-            return _super.prototype.appendChild.call(this, child, true);
-        };
-        Dialog.prototype._appendView = function (member) {
+        Dialog.prototype._appendViewComponent = function (member, options) {
             if (member instanceof Dialog) {
                 this.viewComponent.appendChild(member.viewComponent);
             }
@@ -911,7 +975,7 @@ define(["require", "exports"], function (require, exports) {
                 this.body.appendChild(member.viewComponent);
             }
         };
-        Dialog.prototype._removeView = function (member) {
+        Dialog.prototype._removeViewComponent = function (member, options) {
             if (member instanceof Dialog) {
                 this.viewComponent.removeChild(member.viewComponent);
             }
@@ -931,7 +995,7 @@ define(["require", "exports"], function (require, exports) {
             _this._setZIndex(0);
             _this._setState(DialogState.Focused);
             _this.viewComponent.addClass("pt-topDialog");
-            taskCounter.addListener(exports.TaskCountEvent.Added, function (e) {
+            exports.taskCounter.addListener(exports.TaskCountEvent.Added, function (e) {
                 _this.mask.addClass("pt-show");
             }).addListener(exports.TaskCountEvent.Completed, function (e) {
                 _this.mask.removeClass("pt-show");
@@ -946,16 +1010,34 @@ define(["require", "exports"], function (require, exports) {
             return _this;
         }
         Application.prototype._initHistory = function (initTime, rootUri) {
+            /*
+                浏览器历史记录和tomato历史记录是解耦独立运行的，tomato历史记录是主动执行者，执行成功后会通过_syncHistory同步浏览器历史记录。
+                当用户主动操作浏览器历史记录时，浏览器历史记录将转换为tomato历史记录，并且立即恢复到操作前，然后执行操作tomato历史记录，再由tomato历史记录通过_syncHistory同步
+             */
             var supportState = window.history.pushState ? true : false;
             var _trigger;
             var history = this.history;
+            var skipHashEvent;
             function pushState(code, title, url, isUri) {
-                window.history.pushState(code, title, isUri ? url : "#" + encodeURI(url));
+                if (supportState) {
+                    window.history.pushState(code, title, isUri ? url : "#" + encodeURI(url));
+                }
+                else {
+                    skipHashEvent = true;
+                    window.location.href = "#" + exports.namespace + "@" + code + "@" + encodeURI(url);
+                }
             }
             function addState(code, title, url) {
-                window.history.replaceState(initTime + "." + code, title || document.title, url || window.location.href);
+                if (supportState) {
+                    window.history.replaceState(initTime + "." + code, title || document.title, url || window.location.href);
+                }
+                else {
+                    skipHashEvent = true;
+                    window.location.replace("#" + exports.namespace + "@" + initTime + "." + code + "@" + encodeURI(url || window.location.href));
+                }
             }
             history._syncHistory = function (change, callback) {
+                //历史记录是独立的，通过此方法关联到浏览器的历史记录
                 var execute = function () {
                     if (change.push) {
                         pushState(initTime + '.' + change.push.code, change.push.title, change.push.url, change.push.isUri);
@@ -989,10 +1071,11 @@ define(["require", "exports"], function (require, exports) {
                             _trigger = function () {
                                 document.title = title_1;
                                 setTimeout(function () {
+                                    //恢复到操作前完毕后才开始真正执行history
                                     getTopDialog().history.go(-n_1);
-                                }, 1); //异步触发
+                                }, 1);
                             };
-                            window.history.go(n_1);
+                            window.history.go(n_1); //为了恢复到操作前
                         }
                     }
                     else {
@@ -1016,6 +1099,11 @@ define(["require", "exports"], function (require, exports) {
                             handlerHistory(e.state);
                         }
                         else {
+                            /*
+                                尽量将历史记录交由tomato历史记录管理，由tomato历史记录来推进浏览器历史记录，浏览器历史记录是个被动者。
+                                但是，有的情况下，用户主动输入了一个网址，而又没有刷新页面，比如hash#，此时浏览器会有自动scroll到描点的行为，此时浏览器是主动执行者。
+                                这种情况下，tomato将产生一条空CMD来同步浏览器的历史记录
+                             */
                             history.added(new Cmd(window.location.href, document.title, false));
                             addState(history.getCode().join("."));
                         }
@@ -1027,7 +1115,18 @@ define(["require", "exports"], function (require, exports) {
             }
             else {
                 bindEventListener(window, 'hashchange', function (e) {
-                    console.log('hash', window.location.hash, e);
+                    if (skipHashEvent) {
+                        skipHashEvent = false;
+                    }
+                    else {
+                        var arr = window.location.hash.split("@");
+                        if (arr[0] == "#" + exports.namespace && arr[1] && arr[2]) {
+                            handlerChange({ state: arr[1] });
+                        }
+                        else {
+                            handlerChange({ state: "" });
+                        }
+                    }
                 });
             }
             document.title = rootUri.title;
@@ -1043,8 +1142,7 @@ define(["require", "exports"], function (require, exports) {
         return Application;
     }(Dialog));
     exports.Application = Application;
-    var application = {};
-    exports.application = application;
+    exports.application = {};
     var Cmd = (function (_super) {
         __extends(Cmd, _super);
         function Cmd(url, title, isUri) {
@@ -1072,8 +1170,6 @@ define(["require", "exports"], function (require, exports) {
         Cmd.prototype.undo = function () {
             console.log('undo()', this.url);
             this.success();
-        };
-        Cmd.prototype.abort_undo = function () {
         };
         return Cmd;
     }(PDispatcher));
@@ -1129,6 +1225,7 @@ define(["require", "exports"], function (require, exports) {
                 cmd.setParent(undefined);
                 var callback = function () {
                     _this._curItem = undefined;
+                    _this.dispatch(new PEvent(exports.CmdEvent.CmdSuccess));
                     _this.next();
                 };
                 var item = _this._curItem;
@@ -1149,6 +1246,7 @@ define(["require", "exports"], function (require, exports) {
                     _this._cache = [];
                 }
                 _this._curItem = undefined;
+                _this.dispatch(new PEvent(exports.CmdEvent.CmdFailure));
                 // this.cache.length = 0;
                 // this.goto = this.cur;
                 // this.curItem = undefined;
@@ -1163,10 +1261,8 @@ define(["require", "exports"], function (require, exports) {
         History.prototype.getCode = function () {
             return [this._cur[0], this._cur[1]];
         };
-        History.prototype._pushState = function (code, url, isUri) {
-            window.history.pushState(code, "", isUri ? url : "#" + encodeURI(url));
-        };
         History.prototype._syncHistory = function (change, callback) {
+            //通过应用类重写此方法，可以同步应用类的历史记录堆栈
             callback();
         };
         History.prototype._addHistoryItem = function (cmd) {
@@ -1345,6 +1441,8 @@ define(["require", "exports"], function (require, exports) {
                     }
                 }
                 else {
+                    this.dispatch(new PEvent(exports.CmdEvent.Complete));
+                    //console.log("Complete", this._cur, this._goto, this._list);
                 }
             }
         };
@@ -1553,7 +1651,7 @@ define(["require", "exports"], function (require, exports) {
         if (!resizeTimer) {
             resizeTimer = setTimeout(function () {
                 resizeTimer = null;
-                application.eachDialogChildren(function (item) {
+                exports.application.eachDialogChildren(function (item) {
                     item.onWindowResize(e);
                 }, true);
             }, 100);
@@ -1561,23 +1659,23 @@ define(["require", "exports"], function (require, exports) {
     });
     function setConfig(data) {
         if (data.namespace) {
-            exports.namespace = namespace = data.namespace;
+            exports.namespace = data.namespace;
         }
         if (data.createViewComponent) {
             createViewComponent = data.createViewComponent;
         }
         if (data.application) {
-            exports.application = application = data.application;
-            setTopDialog(application);
+            exports.application = data.application;
+            setTopDialog(exports.application);
         }
     }
     exports.setConfig = setConfig;
     var _topDialog;
     function setTopDialog(dialog) {
         if (_topDialog != dialog) {
-            if (_topDialog == application) {
-                application.history.push(new openDialogCmd());
-                application.history.go(-1);
+            if (_topDialog == exports.application) {
+                exports.application.history.push(new openDialogCmd());
+                exports.application.history.go(-1);
             }
             _topDialog && _topDialog.viewComponent.removeClass("pt-topDialog");
             _topDialog = dialog;

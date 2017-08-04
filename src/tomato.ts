@@ -33,7 +33,7 @@ function assignObject<T>(target: T, ...args): T {
 }
 
 let autoID: number = 0;
-let namespace: string = 'po-to/tomato';
+export let namespace: string = 'po-to/tomato';
 
 export const TaskCountEvent = {
     Added: "TaskCountEvent.Added",
@@ -43,11 +43,11 @@ export const TaskCountEvent = {
 }
 
 export const ViewEvent = {
-    Installed: "CPresenterEvent.Installed",
-    Uninstalled: "CPresenterEvent.Uninstalled",
-    ChildAppended: "CPresenterEvent.ChildAppended",
-    ChildRemoved: "CPresenterEvent.ChildRemoved",
-    Resized: "CPresenterEvent.Resized"
+    Installed: "ViewEvent.Installed",
+    Uninstalled: "ViewEvent.Uninstalled",
+    ChildAppended: "ViewEvent.ChildAppended",
+    ChildRemoved: "ViewEvent.ChildRemoved",
+    Inited: "ViewEvent.Inited",
 }
 
 export enum PropState {
@@ -68,6 +68,8 @@ export const DialogEvent = {
 export const CmdEvent = {
     ItemSuccess: "CmdEvent.ItemSuccess",
     ItemFailure: "CmdEvent.ItemFailure",
+    CmdSuccess: "CmdEvent.CmdSuccess",
+    CmdFailure: "CmdEvent.CmdFailure",
     Failure: "CmdEvent.Failure",
     Success: "CmdEvent.Success",
     Complete: "CmdEvent.Complete",
@@ -77,12 +79,31 @@ export const CmdEvent = {
 export enum SizeDependOn { children, parent }
 
 export class PEvent {
+    /** 指向事件的原始派发者 */
     readonly target: PDispatcher;
+    /** 如果事件具有冒泡属性，该属性指向事件的当前冒泡派发者 */
     readonly currentTarget: PDispatcher;
 
+    /**
+     * 事件构造函数
+     * @param name 事件名称
+     * @param data 事件要传递的数据
+     * @param bubbling 事件是否向上冒泡
+     */
     constructor(public readonly name: string, public readonly data?: any, public bubbling: boolean = false) {
     }
-
+    /**
+     * 设置事件的原始派发者
+     */
+    setTarget(target: PDispatcher){
+        (this as any).target = target;
+    }
+    /**
+     * 设置事件的当前冒泡派发者
+     */
+    setCurrentTarget(target: PDispatcher){
+        (this as any).currentTarget = target;
+    }
 }
 export class PError extends Error {
     constructor(public readonly name: string, public readonly note: string = "tomato.PError", public readonly data?: { file: string, line: string, detail: any }) {
@@ -118,12 +139,23 @@ export function invalidProp(vp: View) {
         }, 0) as any;
     }
 }
-
+/**
+ *我们知道浏览器中的Dom对象可以派发事件，而对于一个JS对象却没有原生的事件机制，为此，tomato中的PDispatcher补充了这一点。tomato.PDispatcher是个事件派发的基类，它和所有继承于它的子类都可以实现简单的事件派发。
+ */
 export class PDispatcher {
+    /**
+     * 事件构造函数
+     * @param parent PDispatcher是有父子层级关系的，类似于Dom事件，当一个事件对象具有“bubbling冒泡”属性时，在其本身派发完事件之后，如果存在parent，则parent继续派发此事件
+     */
     constructor(public readonly parent?: PDispatcher | undefined) {
     }
+    /** 该对象所有侦听函数的集合 */
     protected readonly _handlers: { [key: string]: Array<(e: PEvent) => void> } = {};
-
+    /**
+     * 类似于Dom物件的addEventListener，添加ename事件的侦听函数
+     * @param ename 要侦听的事件名
+     * @param handler 事件回调函数
+     */
     addListener(ename: string, handler: (e: PEvent) => void): this {
         let dictionary = this._handlers[ename];
         if (!dictionary) {
@@ -132,6 +164,11 @@ export class PDispatcher {
         dictionary.push(handler);
         return this;
     }
+    /**
+     * 类似于Dom物件的removeEventListener，移除该物件上侦听ename的指定handler
+     * @param ename 要移除侦听的事件名，如果不传ename表示移除该物件上所有侦听函数
+     * @param handler 要移除侦听的事件回调函数，如果不传handler表示移除该物件上ename的所有侦听函数
+     */
     removeListener(ename?: string, handler?: (e: PEvent) => void): this {
         if (!ename) {
             emptyObject(this._handlers);
@@ -154,25 +191,27 @@ export class PDispatcher {
         }
         return this;
     }
-    dispatch(e: PEvent): this {
-        if (!e.target) {
-            (e as any).target = this;
-            (e as any).currentTarget = this;
+    /**
+     * 派发指定的事件
+     * @param evt 要派发的事件
+     */
+    dispatch(evt: PEvent): this {
+        if (!evt.target) {
+            evt.setTarget(this);
         }
-        let dictionary = this._handlers[e.name];
+        evt.setCurrentTarget(this);
+        let dictionary = this._handlers[evt.name];
         if (dictionary) {
             for (let i = 0, k = dictionary.length; i < k; i++) {
-                dictionary[i](e);
+                dictionary[i](evt);
             }
         }
-        if (this.parent && e.bubbling) {
-            let evt = new PEvent(e.name, e.data, e.bubbling);
-            (evt as any).target = evt.target;
-            (evt as any).currentTarget = this;
+        if (this.parent && evt.bubbling) {
             this.parent.dispatch(evt);
         }
         return this;
     }
+    /** parent属性为readonly的，要设置parent请使用此方法 */
     setParent(parent?: PDispatcher): this {
         (this as any).parent = parent;
         return this;
@@ -197,7 +236,7 @@ export class TaskCounter extends PDispatcher {
                 this._timer = window.setTimeout(() => {
                     this._timer = 0;
                     if (this.list.length > 0 && this.state == TaskCounterState.Free) {
-                        (this as any).state = TaskCountEvent.Busy;
+                        (this as any).state = TaskCounterState.Busy;
                         this.dispatch(new PEvent(TaskCountEvent.Busy));
                     }
                 }, this.deferSecond * 1000);
@@ -216,7 +255,7 @@ export class TaskCounter extends PDispatcher {
                     this._timer = 0;
                 }
                 if (this.state == TaskCounterState.Busy) {
-                    (this as any).state = TaskCountEvent.Free;
+                    (this as any).state = TaskCounterState.Free;
                     this.dispatch(new PEvent(TaskCountEvent.Free));
                 }
             }
@@ -224,26 +263,26 @@ export class TaskCounter extends PDispatcher {
         return this;
     }
 }
-let taskCounter: TaskCounter = new TaskCounter(3);
+export let taskCounter: TaskCounter = new TaskCounter(3);
 
-export interface Component {
-    removeChild(component: Component): any;
-    appendChild(component: Component): any;
+export interface IComponent {
+    removeChild(component: IComponent): any;
+    appendChild(component: IComponent): any;
     removeClass(className: string): any;
     addClass(className: string): any;
 }
 
-export interface ViewComponent extends Component {
+export interface IViewComponent extends IComponent {
     getVID(): string;
     getVCON(): string;
     setVID(id: string): void;
-    getSUBS(): ViewComponent[];
+    getSUBS(): IViewComponent[];
 }
-function isViewComponent(data: any): data is ViewComponent {
+function isViewComponent(data: any): data is IViewComponent {
     return (typeof data.getVID == "function") && (typeof data.getVCON == "function") && (typeof data.setVID == "function") && (typeof data.getSUBS == "function") && (typeof data.removeChild == "function") && (typeof data.appendChild == "function") && (typeof data.removeClass == "function") && (typeof data.addClass == "function")
 }
-let createViewComponent: (data: any) => ViewComponent = function (data: any): ViewComponent {
-    return {} as ViewComponent;
+let createViewComponent: (data: any) => IViewComponent = function (data: any): IViewComponent {
+    return {} as IViewComponent;
 };
 export class View extends PDispatcher {
     public readonly parent: View | undefined;
@@ -255,9 +294,9 @@ export class View extends PDispatcher {
     protected _propValue:{[prop:string]:any} = {};
     protected _widthDependOn: SizeDependOn | undefined;
     protected _heightDependOn: SizeDependOn | undefined;
+    protected _eventToAction:{[evt:string]:Function}|null = null;
 
-
-    constructor(public readonly viewComponent: ViewComponent, parent?: View, vid?: string) {
+    constructor(public readonly viewComponent: IViewComponent, parent?: View, vid?: string) {
         super(parent);
         if(vid){
             this.vid = vid.split("?")[0].replace(/\/+$/, "");
@@ -270,7 +309,7 @@ export class View extends PDispatcher {
     protected _init(): Promise<this> | null {
         let hasPromise:boolean = false;
         let list = this.viewComponent.getSUBS().map((component) => {
-            let result = getView(component,this,true);
+            let result = getAnyView(component,this,true);
             if (!hasPromise && result instanceof Promise) {
                 hasPromise = true;
             }
@@ -278,81 +317,103 @@ export class View extends PDispatcher {
         });
         if (!list.length || !hasPromise) {
             (this.children as any).push(...list);
+            this._inited();
             return null;
         } else {
             return Promise.all(list).then(
                 (list) => {
                     (this.children as any).push(...list);
+                    this._inited();
                     return this;
                 }
             )
         }
     }
-    protected _allowInstallTo(parent: View): boolean {
+    protected _inited(){
+        this.dispatch(new PEvent(ViewEvent.Inited));
+    }
+    protected _triggerEvent(evtName: string, data:any, target:{hit:object,target:object,type:string}):boolean{
+        let mapping = this._eventToAction || this;
+        let handler:Function = mapping[evtName];
+        if(typeof(handler)=="function"){
+            return handler.call(this, data, target)?true:false;
+        }else{
+            return true;
+        }
+    }
+    
+    protected _allowInstallTo(parent: View,  options:any): boolean {
         return true;
     }
-    protected _allowUninstallTo(parent: View): boolean {
+    protected _allowUninstallTo(parent: View,  options:any): boolean {
         return true;
     }
-    protected _allowAppendChild(child: View): boolean {
+    protected _allowAppendChild(child: View,  options:any): boolean {
+        if(child instanceof Dialog){
+             if(!(this instanceof Dialog)){
+                return false;
+            }else if(child.state != DialogState.Closed){
+                return false;
+            }
+        }
         return true;
     }
-    protected _allowRemoveChild(child: View): boolean {
+    protected _allowRemoveChild(child: View,  options:any): boolean {
         return true;
     }
-    protected _beforeInstallTo(parent: View): void {
+    protected _beforeInstallTo(parent: View,  options:any): void {
     }
-    protected _beforeUninstallTo(parent: View): void {
+    protected _beforeUninstallTo(parent: View,  options:any): void {
     }
-    protected _afterInstallTo(parent: View): void {
+    protected _afterInstallTo(parent: View,  options:any): void {
     }
-    protected _afterUninstallTo(parent: View): void {
+    protected _afterUninstallTo(parent: View,  options:any): void {
     }
-    protected _afterRemoveChild(member: View): void {
+    protected _afterRemoveChild(member: View,  options:any): void {
     }
-    protected _afterAppendChild(member: View): void {
+    protected _afterAppendChild(member: View,  options:any): void {
     }
-    protected _beforeRemoveChild(member: View): void {
+    protected _beforeRemoveChild(member: View,  options:any): void {
     }
-    protected _beforeAppendChild(member: View): void {
+    protected _beforeAppendChild(member: View,  options:any): void {
     }
-    protected _appendView(member: View) {
+    protected _appendViewComponent(member: View,  options:any) {
         this.viewComponent.appendChild(member.viewComponent);
     }
-    protected _removeView(member: View) {
+    protected _removeViewComponent(member: View,  options:any) {
         this.viewComponent.removeChild(member.viewComponent);
     }
 
-    protected _checkRemoveChild(member: View): boolean {
+    protected _checkRemoveChild(member: View,  options:any): boolean {
         if (member.parent != this) { return true; }
         if (
-            !member._allowUninstallTo(this) ||
-            !this._allowRemoveChild(member)
+            !member._allowUninstallTo(this,options) ||
+            !this._allowRemoveChild(member,options)
         ) { return false; }
         return true;
     }
-    removeChild(member: View, checked?: boolean): boolean {
+    removeChild(member: View, options?:any, checked?: boolean): boolean {
         if (member.parent != this) { return false; }
-        if (!checked && !this._checkRemoveChild(member)) {
+        if (!checked && !this._checkRemoveChild(member,options)) {
             return false;
         }
-        this._beforeRemoveChild(member);
-        member._beforeUninstallTo(this);
+        this._beforeRemoveChild(member,options);
+        member._beforeUninstallTo(this,options);
         this.children.splice(this.children.indexOf(member), 1);
-        this._removeView(member);
+        this._removeViewComponent(member,options);
         member.setParent(undefined);
-        this._afterRemoveChild(member);
-        member._afterUninstallTo(this);
-        this.dispatch(new PEvent(ViewEvent.ChildRemoved));
-        member.dispatch(new PEvent(ViewEvent.Uninstalled));
+        this._afterRemoveChild(member,options);
+        member._afterUninstallTo(this,options);
+        this.dispatch(new PEvent(ViewEvent.ChildRemoved,options));
+        member.dispatch(new PEvent(ViewEvent.Uninstalled,options));
         return true;
     }
-    protected _checkAppendChild(member: View): boolean {
+    protected _checkAppendChild(member: View,options:any): boolean {
         if (member.parent == this) { return true; }
         if (
-            !member._allowInstallTo(this) ||
-            !this._allowAppendChild(member) ||
-            (member.parent && (!member._allowUninstallTo(this) || !member.parent._allowRemoveChild(member)))
+            !member._allowInstallTo(this,options) ||
+            !this._allowAppendChild(member,options) ||
+            (member.parent && (!member._allowUninstallTo(this,options) || !member.parent._allowRemoveChild(member,options)))
         ) { return false; }
         return true;
     }
@@ -366,22 +427,37 @@ export class View extends PDispatcher {
         }
         return application;
     }
-    appendChild(member: View, checked?: boolean): boolean {
+    appendChild(member: View, options?:any, checked?: boolean): boolean {
         if (member.parent == this) { return false; }
-        if (!checked && !this._checkAppendChild(member)) {
+        if (!checked && !this._checkAppendChild(member,options)) {
             return false;
         }
-        if (member.parent) { member.parent.removeChild(member, true) }
-        this._beforeAppendChild(member);
-        member._beforeInstallTo(this);
+        if (member.parent) { 
+            member.parent.removeChild(member, options ,true) 
+        }
+        this._beforeAppendChild(member,options);
+        member._beforeInstallTo(this,options);
         member.setParent(this);
         this.children.push(member);
-        this._appendView(member);
-        this._afterAppendChild(member);
-        member._afterInstallTo(this);
-        this.dispatch(new PEvent(ViewEvent.ChildAppended));
-        member.dispatch(new PEvent(ViewEvent.Installed));
+        this._appendViewComponent(member,options);
+        this._afterAppendChild(member,options);
+        member._afterInstallTo(this,options);
+        this.dispatch(new PEvent(ViewEvent.ChildAppended,options));
+        member.dispatch(new PEvent(ViewEvent.Installed,options));
         return true;
+    }
+    replaceChild(newChild: View, oChild?:View, options?:any, checked?: boolean): boolean {
+        if (newChild.parent == this) { return false; }
+        if (!checked && !this._checkAppendChild(newChild,options)) {
+            return false;
+        }
+        if (oChild && oChild.parent == this) { 
+            if (!checked && !this._checkRemoveChild(oChild,options)) {
+                return false;
+            }
+            this.removeChild(oChild, options, true);
+        }
+        return this.appendChild(newChild, options, true);
     }
     destroy(): void {
         if (this.vid) {
@@ -595,12 +671,12 @@ function syncRequire(path: string): any | Promise<any> {
     }
 }
 
-export let getView = (function (ViewStore) {
+let getAnyView = (function (ViewStore) {
 
-    function buildViewComponent(data: any): ViewComponent {
+    function buildViewComponent(data: any): IViewComponent {
         return createViewComponent(data);
     }
-    function initView(con: Function, component: ViewComponent, url: string, parent:View|undefined,inited:boolean): View | Promise<View> {
+    function initView(con: Function, component: IViewComponent, url: string, parent:View|undefined,inited:boolean): View | Promise<View> {
         let vp: View = new (con as any)(component, parent, url);
         if(inited){
             if(vp.initialization){
@@ -612,10 +688,10 @@ export let getView = (function (ViewStore) {
             return vp;
         }
     }
-    function buildView(component: ViewComponent, url: string, parent:View|undefined,inited:boolean): View | Promise<View> {
+    function buildView(component: IViewComponent, url: string, parent:View|undefined,inited:boolean): View | Promise<View> {
         if (!isViewComponent(component)) {
             console.log(component);
-            throw "is not a ViewComponent";
+            throw "is not a IViewComponent";
         }
         let conPath = component.getVCON();
         if (conPath) {
@@ -632,7 +708,7 @@ export let getView = (function (ViewStore) {
         }
     }
 
-    function returnResult(component: ViewComponent | null, url: string, parent:View|undefined,inited:boolean): View | Promise<View> {
+    function returnResult(component: IViewComponent | null, url: string, parent:View|undefined,inited:boolean): View | Promise<View> {
         if (component) {
             return buildView(component, url, parent, inited);
         } else if (url) {
@@ -648,10 +724,10 @@ export let getView = (function (ViewStore) {
             throw 'not found component and url !'
         }
     }
-    return function (data: string | ViewComponent, parent:View|undefined = undefined, inited:boolean=true): View | Promise<View> {
+    return function (data: string | IViewComponent, parent:View|undefined = undefined, inited:boolean=true): View | Promise<View> {
         let url: string;
         let id: string;
-        let component: ViewComponent | null;
+        let component: IViewComponent | null;
         if (typeof data != "string") {
             component = data;
             id = data.getVID();
@@ -682,19 +758,22 @@ export let getView = (function (ViewStore) {
 
 })(ViewStore)
 
-export function syncGetView<T>(data: string | ViewComponent, parent:View|undefined = undefined, inited:boolean=true): T {
-    return getView(data) as any;
+export function syncGetView<T>(data: string | IViewComponent, parent:View|undefined = undefined, inited:boolean=true): T {
+    return getAnyView(data, parent, inited) as any;
 }
-export function asyncGetView<T>(data: string | ViewComponent, parent:View|undefined = undefined, inited:boolean=true): Promise<T> {
-    let result = getView(data);
+export function asyncGetView<T>(data: string | IViewComponent, parent:View|undefined = undefined, inited:boolean=true): Promise<T> {
+    let result = getAnyView(data, parent, inited);
     if (result instanceof Promise) {
         return result as any;
     } else {
         return Promise.resolve(result as any);
     }
 }
+export function getView(data: string | IViewComponent, parent:View|undefined = undefined, inited:boolean=true): View | Promise<View> {
+    return getAnyView(data, parent, inited);
+}
 
-export interface ILayerComponent extends ViewComponent {
+export interface ILayerComponent extends IViewComponent {
     setZIndex(index: number): void;
 }
 
@@ -763,17 +842,16 @@ export abstract class Dialog extends View {
     public readonly parent: Dialog | undefined;
     public readonly viewComponent: ILayerComponent;
     public readonly state: DialogState = DialogState.Closed;
-    public readonly content: View | null = null;
-    public readonly dialog: Component;
-    public readonly mask: Component;
-    public readonly body: Component;
+    public readonly dialog: IComponent;
+    public readonly mask: IComponent;
+    public readonly body: IComponent;
     protected readonly _dialogList: Dialog[] = [];
     private _zindex: number = -1;
 
 
     public readonly config: IDialogConfig = DialogConfig;
 
-    constructor(els: { viewComponent: ILayerComponent, dialog: Component, mask: Component, body: Component }, config?: IDialogConfigOptions) {
+    constructor(els: { viewComponent: ILayerComponent, dialog: IComponent, mask: IComponent, body: IComponent }, config?: IDialogConfigOptions) {
         super(els.viewComponent, undefined);
         this.dialog = els.dialog;
         this.mask = els.mask;
@@ -904,7 +982,7 @@ export abstract class Dialog extends View {
         if (this.state == DialogState.Focused) {
             let list = parentDialog._dialogList;
             let dialog: Dialog | undefined = list[list.length - 2];
-            if (dialog && !dialog._allowFocus()) {
+            if (dialog && !dialog._allowFocus(true)) {
                 return false;
             }
         }
@@ -949,12 +1027,13 @@ export abstract class Dialog extends View {
                 setTopDialog(this);
             }
             this.dispatch(new PEvent(DialogEvent.Focused));
-            if (this.content) {
-                this.content.eachChildren(function (child) {
-                    child.dispatch(new PEvent(DialogEvent.Focused));
-                }, true);
-            }
-
+            this.children.forEach(function(child){
+               if(!(child instanceof Dialog)){
+                    child.eachChildren(function (child) {
+                        child.dispatch(new PEvent(DialogEvent.Focused));
+                    }, true);
+               }
+            });
         }
         return true;
     }
@@ -976,11 +1055,13 @@ export abstract class Dialog extends View {
         this._setState(DialogState.Closed);
         this._afterClose();
         this.dispatch(new PEvent(DialogEvent.Closed));
-        if (this.content) {
-            this.content.eachChildren(function (child) {
-                child.dispatch(new PEvent(DialogEvent.Closed));
-            }, true);
-        }
+        this.children.forEach(function(child){
+            if(!(child instanceof Dialog)){
+                child.eachChildren(function (child) {
+                    child.dispatch(new PEvent(DialogEvent.Closed));
+                }, true);
+            }
+        });
         focusDialog && focusDialog.focus(true);
         !focusDialog && setTopDialog(parentDialog);
         return true;
@@ -992,52 +1073,31 @@ export abstract class Dialog extends View {
         this._setState(DialogState.Blured);
         this._afterBlur();
         this.dispatch(new PEvent(DialogEvent.Blured));
-        if (this.content) {
-            this.content.eachChildren(function (child) {
-                child.dispatch(new PEvent(DialogEvent.Blured));
-            }, true);
-        }
+        this.children.forEach(function(child){
+            if(!(child instanceof Dialog)){
+                child.eachChildren(function (child) {
+                    child.dispatch(new PEvent(DialogEvent.Blured));
+                }, true);
+            }
+        });
     }
     protected _setState(state: DialogState): void {
         this.viewComponent.removeClass("pt-" + DialogState[this.state]);
         (this as any).state = state;
         this.viewComponent.addClass("pt-" + DialogState[this.state]);
     }
-    protected _allowAppendChild(member: View): boolean {
-        if (member instanceof Dialog) {
-            if (member.state != DialogState.Closed) { return false; }
-        }
-        return true;
-    }
+    
     onWindowResize(e:Event){
 
     }
-    appendChild(child: View): boolean {
-        if (child.parent == this) { return false; }
-        if (!this._checkAppendChild(child)) {
-            return false;
-        }
-        if (!(child instanceof Dialog)) {
-            if (this.content) {
-                let member = this.content;
-                if (member.parent != this) { return false; }
-                if (!this._checkRemoveChild(member)) {
-                    return false;
-                }
-                this.removeChild(member, true);
-            }
-            (this as any).content = child;
-        }
-        return super.appendChild(child, true);
-    }
-    protected _appendView(member: View): void {
+    protected _appendViewComponent(member: View,options:any): void {
         if (member instanceof Dialog) {
             this.viewComponent.appendChild(member.viewComponent);
         } else {
             this.body.appendChild(member.viewComponent);
         }
     }
-    protected _removeView(member: View): void {
+    protected _removeViewComponent(member: View,options:any): void {
         if (member instanceof Dialog) {
             this.viewComponent.removeChild(member.viewComponent);
         } else {
@@ -1052,7 +1112,7 @@ export abstract class Dialog extends View {
 export class Application extends Dialog {
 
     public initTime = Date.now();
-    constructor(rootUri: Cmd | null, els: { viewComponent: ILayerComponent, dialog: Component, mask: Component, body: Component }, config?: IDialogConfigOptions) {
+    constructor(rootUri: Cmd | null, els: { viewComponent: ILayerComponent, dialog: IComponent, mask: IComponent, body: IComponent }, config?: IDialogConfigOptions) {
         super(els, config);
         this.viewComponent.removeClass("pt-layer").addClass("pt-application");
         this._setZIndex(0);
@@ -1073,17 +1133,33 @@ export class Application extends Dialog {
         
     }
     private _initHistory(initTime: number, rootUri: Cmd) {
+        /*
+            浏览器历史记录和tomato历史记录是解耦独立运行的，tomato历史记录是主动执行者，执行成功后会通过_syncHistory同步浏览器历史记录。
+            当用户主动操作浏览器历史记录时，浏览器历史记录将转换为tomato历史记录，并且立即恢复到操作前，然后执行操作tomato历史记录，再由tomato历史记录通过_syncHistory同步
+         */
         let supportState = window.history.pushState ? true : false;
         let _trigger: boolean | (() => void);
         let history = this.history;
+        let skipHashEvent:boolean;
 
         function pushState(code: string, title: string, url: string, isUri: boolean) {
-            window.history.pushState(code, title, isUri ? url : "#" + encodeURI(url));
+            if(supportState){
+                 window.history.pushState(code, title, isUri ? url : "#" + encodeURI(url));
+            }else{
+                skipHashEvent = true;
+                window.location.href = "#"+namespace+"@"+code+"@"+encodeURI(url);
+            }
         }
         function addState(code: string, title?: string, url?: string) {
-            window.history.replaceState(initTime + "." + code, title || document.title, url || window.location.href);
+            if(supportState){
+                window.history.replaceState(initTime + "." + code, title || document.title, url || window.location.href);
+            }else{
+                skipHashEvent = true;
+                window.location.replace("#"+namespace+"@"+initTime + "." + code+"@"+encodeURI(url || window.location.href));
+            }
         }
         history._syncHistory = function (change: { move?: number, moveTitle?: string, push?: { code: string, url: string, title: string, isUri: boolean } }, callback: () => void) {
+            //历史记录是独立的，通过此方法关联到浏览器的历史记录
             let execute = function () {
                 if (change.push) {
                     pushState(initTime + '.' + change.push.code, change.push.title, change.push.url, change.push.isUri);
@@ -1105,7 +1181,7 @@ export class Application extends Dialog {
             let [flag, uri, act] = str.split(".").map(function (val) {
                 return parseInt(val);
             });
-            if (flag == initTime) {
+            if (flag == initTime) {//如果该命令是本页种下的
                 let cmd = history.getCmdByCode(uri + '.' + act);
                 if (cmd) {
                     let [curUri, curAct] = history.getCode();
@@ -1116,10 +1192,11 @@ export class Application extends Dialog {
                         _trigger = function () {
                             document.title = title;
                             setTimeout(function () {
+                                //恢复到操作前完毕后才开始真正执行history
                                 getTopDialog().history.go(-n);
-                            }, 1);//异步触发
+                            }, 1);
                         };
-                        window.history.go(n);
+                        window.history.go(n);//为了恢复到操作前
                     }
                 } else {
                     window.location.reload();
@@ -1139,6 +1216,11 @@ export class Application extends Dialog {
                     if (e.state) {
                         handlerHistory(e.state);
                     } else {
+                        /*
+                            尽量将历史记录交由tomato历史记录管理，由tomato历史记录来推进浏览器历史记录，浏览器历史记录是个被动者。
+                            但是，有的情况下，用户主动输入了一个网址，而又没有刷新页面，比如hash#，此时浏览器会有自动scroll到描点的行为，此时浏览器是主动执行者。
+                            这种情况下，tomato将产生一条空CMD来同步浏览器的历史记录
+                         */
                         history.added(new Cmd(window.location.href, document.title, false));
                         addState(history.getCode().join("."));
                     }
@@ -1149,7 +1231,16 @@ export class Application extends Dialog {
             bindEventListener(window, 'popstate', handlerChange);
         } else {
             bindEventListener(window, 'hashchange', function (e) {
-                console.log('hash', window.location.hash, e);
+                if(skipHashEvent){
+                    skipHashEvent = false;
+                }else{
+                    let arr = window.location.hash.split("@");
+                    if(arr[0] == "#"+namespace && arr[1] && arr[2]){
+                        handlerChange({state:arr[1]});
+                    }else{
+                        handlerChange({state:""});
+                    }
+                }
             });
         }
         document.title = rootUri.title;
@@ -1165,7 +1256,7 @@ export class Application extends Dialog {
 
 }
 
-let application: Application = {} as any;
+export let application: Application = {} as any;
 
 export class Cmd extends PDispatcher {
     constructor(public readonly url: string, public readonly title: string, public readonly isUri: boolean = false) {
@@ -1188,8 +1279,6 @@ export class Cmd extends PDispatcher {
     undo() {
         console.log('undo()', this.url);
         this.success();
-    }
-    abort_undo() {
     }
 }
 
@@ -1240,6 +1329,7 @@ export class History extends PDispatcher {
             cmd.setParent(undefined);
             let callback = () => {
                 this._curItem = undefined;
+                this.dispatch(new PEvent(CmdEvent.CmdSuccess));
                 this.next();
             }
             let item = this._curItem;
@@ -1259,6 +1349,7 @@ export class History extends PDispatcher {
                 this._cache = [];
             }
             this._curItem = undefined;
+            this.dispatch(new PEvent(CmdEvent.CmdFailure));
             // this.cache.length = 0;
             // this.goto = this.cur;
             // this.curItem = undefined;
@@ -1272,10 +1363,8 @@ export class History extends PDispatcher {
     getCode() {
         return [this._cur[0], this._cur[1]];
     }
-    private _pushState(code: string, url: string, isUri: boolean) {
-        window.history.pushState(code, "", isUri ? url : "#" + encodeURI(url));
-    }
     public _syncHistory(change: { move?: number, moveTitle?: string, push?: { code: string, url: string, title: string, isUri: boolean } }, callback: () => void) {
+        //通过应用类重写此方法，可以同步应用类的历史记录堆栈
         callback();
     }
     private _addHistoryItem(cmd: Cmd): { move?: number, moveTitle?: string, push?: { code: string, url: string, title: string, isUri: boolean } } {
@@ -1438,6 +1527,7 @@ export class History extends PDispatcher {
                     this.dispatch(new PEvent(CmdEvent.Overflow));
                 }
             } else {
+                this.dispatch(new PEvent(CmdEvent.Complete));
                 //console.log("Complete", this._cur, this._goto, this._list);
             }
         }
@@ -1675,7 +1765,7 @@ bindEventListener(window, 'resize', function (e) {
 export function setConfig(data: {
     namespace?: string,
     application?: Application,
-    createViewComponent?: (data: any) => ViewComponent;
+    createViewComponent?: (data: any) => IViewComponent;
 }): void {
     if (data.namespace) {
         namespace = data.namespace;
@@ -1705,5 +1795,3 @@ function setTopDialog(dialog: Dialog) {
 export function getTopDialog(): Dialog {
     return _topDialog;
 }
-
-export { application, namespace, taskCounter };

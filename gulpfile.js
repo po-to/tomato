@@ -41,23 +41,19 @@ gulp.task("tscdoc", function () {
             out: DIST + "/docs",
             //json: "output/to/file.json",
             // TypeDoc options (see typedoc docs) 
-            theme : "default",//minimal
+            theme : "minimal",//"default",
             name: "tomato",
+            excludePrivate: true, 
+            excludeExternals: true,
             ignoreCompilerErrors: false,
             version: true,
         }))
 });
 
-gulp.task('examples', function () {
-    connect.server({
-        port: "3333", 
-        root: ["./examples/"],
-        livereload: false
-    });
-});
 
-gulp.task('bulid', function (callback) { runSequence(['tsc', 'tscdoc'] , callback) });
 
-gulp.task('default', ["bulid"]);
+gulp.task('build', function (callback) { runSequence(['tsc', 'tscdoc'] , callback) });
+
+gulp.task('default', ["build"]);
 
 

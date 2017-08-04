@@ -1,4 +1,4 @@
-declare let namespace: string;
+export declare let namespace: string;
 export declare const TaskCountEvent: {
     Added: string;
     Completed: string;
@@ -10,7 +10,7 @@ export declare const ViewEvent: {
     Uninstalled: string;
     ChildAppended: string;
     ChildRemoved: string;
-    Resized: string;
+    Inited: string;
 };
 export declare enum PropState {
     Invalid = 0,
@@ -25,6 +25,8 @@ export declare const DialogEvent: {
 export declare const CmdEvent: {
     ItemSuccess: string;
     ItemFailure: string;
+    CmdSuccess: string;
+    CmdFailure: string;
     Failure: string;
     Success: string;
     Complete: string;
@@ -38,9 +40,25 @@ export declare class PEvent {
     readonly name: string;
     readonly data: any;
     bubbling: boolean;
+    /** 指向事件的原始派发者 */
     readonly target: PDispatcher;
+    /** 如果事件具有冒泡属性，该属性指向事件的当前冒泡派发者 */
     readonly currentTarget: PDispatcher;
+    /**
+     * 事件构造函数
+     * @param name 事件名称
+     * @param data 事件要传递的数据
+     * @param bubbling 事件是否向上冒泡
+     */
     constructor(name: string, data?: any, bubbling?: boolean);
+    /**
+     * 设置事件的原始派发者
+     */
+    setTarget(target: PDispatcher): void;
+    /**
+     * 设置事件的当前冒泡派发者
+     */
+    setCurrentTarget(target: PDispatcher): void;
 }
 export declare class PError extends Error {
     readonly name: string;
@@ -58,15 +76,38 @@ export declare class PError extends Error {
     getNamespace(): string;
 }
 export declare function invalidProp(vp: View): void;
+/**
+ *我们知道浏览器中的Dom对象可以派发事件，而对于一个JS对象却没有原生的事件机制，为此，tomato中的PDispatcher补充了这一点。tomato.PDispatcher是个事件派发的基类，它和所有继承于它的子类都可以实现简单的事件派发。
+ */
 export declare class PDispatcher {
     readonly parent: PDispatcher | undefined;
+    /**
+     * 事件构造函数
+     * @param parent PDispatcher是有父子层级关系的，类似于Dom事件，当一个事件对象具有“bubbling冒泡”属性时，在其本身派发完事件之后，如果存在parent，则parent继续派发此事件
+     */
     constructor(parent?: PDispatcher | undefined);
+    /** 该对象所有侦听函数的集合 */
     protected readonly _handlers: {
         [key: string]: Array<(e: PEvent) => void>;
     };
+    /**
+     * 类似于Dom物件的addEventListener，添加ename事件的侦听函数
+     * @param ename 要侦听的事件名
+     * @param handler 事件回调函数
+     */
     addListener(ename: string, handler: (e: PEvent) => void): this;
+    /**
+     * 类似于Dom物件的removeEventListener，移除该物件上侦听ename的指定handler
+     * @param ename 要移除侦听的事件名，如果不传ename表示移除该物件上所有侦听函数
+     * @param handler 要移除侦听的事件回调函数，如果不传handler表示移除该物件上ename的所有侦听函数
+     */
     removeListener(ename?: string, handler?: (e: PEvent) => void): this;
-    dispatch(e: PEvent): this;
+    /**
+     * 派发指定的事件
+     * @param evt 要派发的事件
+     */
+    dispatch(evt: PEvent): this;
+    /** parent属性为readonly的，要设置parent请使用此方法 */
     setParent(parent?: PDispatcher): this;
 }
 export declare enum TaskCounterState {
@@ -85,21 +126,21 @@ export declare class TaskCounter extends PDispatcher {
     addItem(promise: Promise<any>, note?: string): Promise<any>;
     private _completeItem(promise);
 }
-declare let taskCounter: TaskCounter;
-export interface Component {
-    removeChild(component: Component): any;
-    appendChild(component: Component): any;
+export declare let taskCounter: TaskCounter;
+export interface IComponent {
+    removeChild(component: IComponent): any;
+    appendChild(component: IComponent): any;
     removeClass(className: string): any;
     addClass(className: string): any;
 }
-export interface ViewComponent extends Component {
+export interface IViewComponent extends IComponent {
     getVID(): string;
     getVCON(): string;
     setVID(id: string): void;
-    getSUBS(): ViewComponent[];
+    getSUBS(): IViewComponent[];
 }
 export declare class View extends PDispatcher {
-    readonly viewComponent: ViewComponent;
+    readonly viewComponent: IViewComponent;
     readonly parent: View | undefined;
     readonly children: View[];
     readonly vid: string;
@@ -112,27 +153,37 @@ export declare class View extends PDispatcher {
     };
     protected _widthDependOn: SizeDependOn | undefined;
     protected _heightDependOn: SizeDependOn | undefined;
-    constructor(viewComponent: ViewComponent, parent?: View, vid?: string);
+    protected _eventToAction: {
+        [evt: string]: Function;
+    } | null;
+    constructor(viewComponent: IViewComponent, parent?: View, vid?: string);
     protected _init(): Promise<this> | null;
-    protected _allowInstallTo(parent: View): boolean;
-    protected _allowUninstallTo(parent: View): boolean;
-    protected _allowAppendChild(child: View): boolean;
-    protected _allowRemoveChild(child: View): boolean;
-    protected _beforeInstallTo(parent: View): void;
-    protected _beforeUninstallTo(parent: View): void;
-    protected _afterInstallTo(parent: View): void;
-    protected _afterUninstallTo(parent: View): void;
-    protected _afterRemoveChild(member: View): void;
-    protected _afterAppendChild(member: View): void;
-    protected _beforeRemoveChild(member: View): void;
-    protected _beforeAppendChild(member: View): void;
-    protected _appendView(member: View): void;
-    protected _removeView(member: View): void;
-    protected _checkRemoveChild(member: View): boolean;
-    removeChild(member: View, checked?: boolean): boolean;
-    protected _checkAppendChild(member: View): boolean;
+    protected _inited(): void;
+    protected _triggerEvent(evtName: string, data: any, target: {
+        hit: object;
+        target: object;
+        type: string;
+    }): boolean;
+    protected _allowInstallTo(parent: View, options: any): boolean;
+    protected _allowUninstallTo(parent: View, options: any): boolean;
+    protected _allowAppendChild(child: View, options: any): boolean;
+    protected _allowRemoveChild(child: View, options: any): boolean;
+    protected _beforeInstallTo(parent: View, options: any): void;
+    protected _beforeUninstallTo(parent: View, options: any): void;
+    protected _afterInstallTo(parent: View, options: any): void;
+    protected _afterUninstallTo(parent: View, options: any): void;
+    protected _afterRemoveChild(member: View, options: any): void;
+    protected _afterAppendChild(member: View, options: any): void;
+    protected _beforeRemoveChild(member: View, options: any): void;
+    protected _beforeAppendChild(member: View, options: any): void;
+    protected _appendViewComponent(member: View, options: any): void;
+    protected _removeViewComponent(member: View, options: any): void;
+    protected _checkRemoveChild(member: View, options: any): boolean;
+    removeChild(member: View, options?: any, checked?: boolean): boolean;
+    protected _checkAppendChild(member: View, options: any): boolean;
     getDialog(): Dialog;
-    appendChild(member: View, checked?: boolean): boolean;
+    appendChild(member: View, options?: any, checked?: boolean): boolean;
+    replaceChild(newChild: View, oChild?: View, options?: any, checked?: boolean): boolean;
     destroy(): void;
     eachChildren(callback: (item: View) => void, andSelf?: boolean): void;
     invalidProp(prop: string): void;
@@ -140,10 +191,10 @@ export declare class View extends PDispatcher {
     protected _computeProp(prop: string): any;
     updateProp(): void;
 }
-export declare let getView: (data: string | ViewComponent, parent?: View | undefined, inited?: boolean) => View | Promise<View>;
-export declare function syncGetView<T>(data: string | ViewComponent, parent?: View | undefined, inited?: boolean): T;
-export declare function asyncGetView<T>(data: string | ViewComponent, parent?: View | undefined, inited?: boolean): Promise<T>;
-export interface ILayerComponent extends ViewComponent {
+export declare function syncGetView<T>(data: string | IViewComponent, parent?: View | undefined, inited?: boolean): T;
+export declare function asyncGetView<T>(data: string | IViewComponent, parent?: View | undefined, inited?: boolean): Promise<T>;
+export declare function getView(data: string | IViewComponent, parent?: View | undefined, inited?: boolean): View | Promise<View>;
+export interface ILayerComponent extends IViewComponent {
     setZIndex(index: number): void;
 }
 export declare enum DialogState {
@@ -193,18 +244,17 @@ export declare abstract class Dialog extends View {
     readonly parent: Dialog | undefined;
     readonly viewComponent: ILayerComponent;
     readonly state: DialogState;
-    readonly content: View | null;
-    readonly dialog: Component;
-    readonly mask: Component;
-    readonly body: Component;
+    readonly dialog: IComponent;
+    readonly mask: IComponent;
+    readonly body: IComponent;
     protected readonly _dialogList: Dialog[];
     private _zindex;
     readonly config: IDialogConfig;
     constructor(els: {
         viewComponent: ILayerComponent;
-        dialog: Component;
-        mask: Component;
-        body: Component;
+        dialog: IComponent;
+        mask: IComponent;
+        body: IComponent;
     }, config?: IDialogConfigOptions);
     protected _onHistoryOverflow(e: any): void;
     setConfig(config: IDialogConfigOptions): void;
@@ -229,25 +279,23 @@ export declare abstract class Dialog extends View {
     close(): boolean;
     private _blur();
     protected _setState(state: DialogState): void;
-    protected _allowAppendChild(member: View): boolean;
     onWindowResize(e: Event): void;
-    appendChild(child: View): boolean;
-    protected _appendView(member: View): void;
-    protected _removeView(member: View): void;
+    protected _appendViewComponent(member: View, options: any): void;
+    protected _removeViewComponent(member: View, options: any): void;
 }
 export declare class Application extends Dialog {
     initTime: number;
     constructor(rootUri: Cmd | null, els: {
         viewComponent: ILayerComponent;
-        dialog: Component;
-        mask: Component;
-        body: Component;
+        dialog: IComponent;
+        mask: IComponent;
+        body: IComponent;
     }, config?: IDialogConfigOptions);
     private _initHistory(initTime, rootUri);
     close(): boolean;
     focus(checked?: boolean): boolean;
 }
-declare let application: Application;
+export declare let application: Application;
 export declare class Cmd extends PDispatcher {
     readonly url: string;
     readonly title: string;
@@ -258,7 +306,6 @@ export declare class Cmd extends PDispatcher {
     execute(): void;
     redo(): void;
     undo(): void;
-    abort_undo(): void;
 }
 export declare class History extends PDispatcher {
     maxStep: number;
@@ -272,7 +319,6 @@ export declare class History extends PDispatcher {
     constructor(maxStep?: number);
     getLength(): number;
     getCode(): number[];
-    private _pushState(code, url, isUri);
     _syncHistory(change: {
         move?: number;
         moveTitle?: string;
@@ -296,7 +342,6 @@ export declare function initHistory(): void;
 export declare function setConfig(data: {
     namespace?: string;
     application?: Application;
-    createViewComponent?: (data: any) => ViewComponent;
+    createViewComponent?: (data: any) => IViewComponent;
 }): void;
 export declare function getTopDialog(): Dialog;
-export { application, namespace, taskCounter };

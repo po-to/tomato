@@ -1,43 +1,41 @@
 # tomato
-一个web前端的交互组织框架
+tomato是一个客户端JS框架，主要依据前文所提到的“视图组织”思路，提供抽象接口和部分基类。一般不直接使用，你可以跟据具体项目来扩展和实现它。Poto中也提供了多个基于其扩展的框架，如：tomato-jquery、tomato-vue等。tomato采用Typescript开发，编译成为ES5标准的JS，如果你需要效率更高的ES6语法，请自行下载源码编译。
 
-- 项目主页：[po-to.org/pt-cache](http://po-to.org/pt-cache)
-- 项目地址：[Github](https://github.com/po-to/pt-cache)
-- API文档： [在线文档](http://po-to.org/pt-cache/docs) 或见 /docs
-- 案例应用：[在线文档](http://po-to.org/pt-cache/examples) 或见 /examples
-- 概述简介
-- 使用说明
+# 项目主页
+[po-to.org](po-to.org/page/articles/tomato/s01)
 
-# 简介
+# 兼容
+tomato采用“优雅降级”的理念兼容IE8及以上浏览器，在主流现代浏览器中均有很好的用户体验。 
 
-**什么是web前端的交互组织框架**  
-与当前百家争鸣的众多web前端框架不同，本框架的诞生不是为了重复造轮子，也不是为了给已经头晕目眩的前端兄弟们又一个新的选择。正好相反，本框架旨在为各路神仙大侠提供一个组织模块与交互调用的统一方式。 
+# 依赖
+Tomato依赖于两个环境对象：
+- Promise：浏览器内置对象，对于低版本的浏览器，你注意引入Promise Shim
+- require：AMD模块载入函数，建议使用：RequireJS库
 
-*(∩_∩)，别排斥我，我不是来添乱的哦...*
-- 这不是一个如Angularjs之类的前端MVC框架
-- 这不是一个如React之类的View之构建框架
-- 这不是一个如Web components之类的组件框架
-- 这不是一个如JQuery之类的前端库
+# 安装
+- 使用NPM安装：npm install @po-to/tomato
+- 手动下载安装：[Github](https://github.com/po-to/tomato)
 
-*(∩_∩)，忍不住，给自已点个赞：*
-- 微框架，小巧灵活，简单易用
-- 自由组合，积极拥抱第三方框架
-- 兼容低版本浏览器，如IE8
+# 引入
+使用AMD标准模块化，推荐使用requireJS引入
 
-*(∩_∩)，我的家谱：*
-- **tomato - 客户端js框架**
-- potato - 服务端nodeJS框架
-- plate - 典型工程化构建框架
-- tomato-jquery - 采用简单jquery做view的实现
-- tomato-react - 采用react做view的实现
-- tomato-* - 后续会提供更多view的实现
-- potato-php - 采用php做server的实现
-- potato-* - 后续会提供更多server的实现
+# 文档
+[API](po-to.org/static/api/tomato)
 
-![po-to大前端框架](https://raw.githubusercontent.com/po-to/tomato/dev/readme-img/tomato.png)
+#设置
+Tomato中的设置主要通过其对外函数setConfig()来实现：
 
-**为什么家谱中会有server框架？**  
-po-to是一个定位为“**大前端**”的框架集合，组织模块和服务器渲染时需要server的支持，虽然用到server技术，但只会围绕前端内容开展，所以服务端可称为“*前端服务适配端*”。
-
-# 什么是交互组织框架
-抛开各种技术实现与框架，我们简单的从交互的角度来看看我们一个web页面或是web应用是如何展示在浏览器中，并随着时间和用户操作来改变状态的。
+    ```
+	export declare function setConfig(data: {
+	    namespace?: string;
+	    application?: Application;
+	    createViewComponent?: (data: any) => IViewComponent;
+	}): void;
+    ```
+从上面代码可以看出，tomato可以设置的选项主要有三项：
+- namespace?: string   
+一个被当作tomato命名空间的字符串，请确保其唯一，默认值为"po-to/tomato"
+- application?: Application   
+Application为“根会话”（参见：概述->视图组织），tomato中提供Application的抽象基类，项目中必须先继承该基类并实例化后回传给tomato
+- createViewComponent?: (data: any) => IViewComponent   
+createViewComponent为一个创建IViewComponent的函数，IViewComponent是视图模块的根Component（参见：概述->视图组织）。tomato中不直接提供创建IViewComponent的方法，项目中必须给tomato设置此创建函数。
