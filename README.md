@@ -27,14 +27,13 @@ Tomato依赖于两个环境对象：
 
 #设置
 Tomato中的设置主要通过其对外函数setConfig()来实现：
-
-    ```
-	export declare function setConfig(data: {
-	    namespace?: string;
-	    application?: Application;
-	    createViewComponent?: (data: any) => IViewComponent;
-	}): void;
-    ```
+```
+export declare function setConfig(data: {
+    namespace?: string;
+    application?: Application;
+    createViewComponent?: (data: any) => IViewComponent;
+}): void;
+```
 从上面代码可以看出，tomato可以设置的选项主要有三项：
 - namespace?: string   
 一个被当作tomato命名空间的字符串，请确保其唯一，默认值为"po-to/tomato"

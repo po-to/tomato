@@ -27,5 +27,8 @@
     "run-sequence": "^1.2.2",
     "typedoc": "^0.7.1",
     "typescript": "^2.1.4"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
