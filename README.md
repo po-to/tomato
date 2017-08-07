@@ -25,8 +25,8 @@ Tomato依赖于两个环境对象：
 # 文档
 [API](http://www.po-to.org/static/api/tomato)
 
-#设置
-Tomato中的设置主要通过其对外函数setConfig()来实现：
+# 设置
+tomato中的设置主要通过其对外函数setConfig()来实现：
 ```
 export declare function setConfig(data: {
     namespace?: string;
