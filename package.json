@@ -1,7 +1,7 @@
 {
   "name": "@po-to/tomato",
-  "version": "0.1.0",
-  "description": "The web interaction framework for browser",
+  "version": "0.0.1",
+  "description": "You can chose a view framework that you most familiar with it",
   "homepage": "http://www.po-to.org",
   "main": "tomato.js",
   "types": "tomato.d.ts",

@@ -4,6 +4,9 @@ tomato是一个客户端JS框架，主要依据前文所提到的“视图组织
 # 项目主页
 [www.po-to.org](http://www.po-to.org/page/articles/tomato/s01)
 
+# 仓库
+[Github](https://github.com/po-to/tomato)
+
 # 兼容
 tomato采用“优雅降级”的理念兼容IE8及以上浏览器，在主流现代浏览器中均有很好的用户体验。 
 
